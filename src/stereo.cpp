@@ -26,7 +26,7 @@ std::vector<Eigen::Matrix4f> poses;
 
 int main(){
 
-    DATA_SYNTHETIC_DIR = "./output640x480/";
+    DATA_SYNTHETIC_DIR = "./../output640x480/";
     load_all_matrices_from_n_files(poses);
 
     Eigen::MatrixXf _d(pixels, d_range);
