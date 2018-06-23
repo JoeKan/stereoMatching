@@ -8,8 +8,11 @@
 
 bool processNextFrame(int filenum, BYTE* colorFrame);
 //bool ReadPoseFile(int filenum, Eigen::MatrixXf &Pose);
-Vector3f pi_inverse(int pixelNum, float depth);
+Eigen::Vector4f pi_inverse(int pixelNum, float depth);
 void load_all_matrices_from_n_files(std::vector<Eigen::Matrix4f> &P);
+Eigen::Matrix4f T_mr(int m_frame, int r_frame);
+Eigen::Vector2f pi(Vector3f vec);
+float rho_r(int pixel, float depth, BYTE* colorFrame_r, BYTE* colorFrame_m, Vector3f &I_r, int m_frame, int r_frame);
 
 Eigen::Matrix3f K;
 Eigen::Matrix3f KInv;
@@ -24,36 +27,36 @@ std::vector<Eigen::Matrix4f> poses;
 int main(){
 
     DATA_SYNTHETIC_DIR = "./output640x480/";
+    load_all_matrices_from_n_files(poses);
 
     Eigen::MatrixXf _d(pixels, d_range);
     for(uint i = 0; i < pixels; ++i){
         for(uint j=0; j< d_range; j++)
-            _d[i][j] = MINF;
+            _d(i,j) = 0;
     }
 
     K <<    525.0f, 0.0f, 319.5f,
-		0.0f, 525.0f, 239.5f,
-		0.0f, 0.0f, 1.0f;
+		    0.0f, 525.0f, 239.5f,
+		    0.0f, 0.0f, 1.0f;
     KInv = K.inverse();
-    
+    std::cout << "inverse" << std::endl ;
+    std::cout << KInv << std::endl ;
 
     BYTE* colorFrame_r = new BYTE[4* 640*480];
     processNextFrame(8, colorFrame_r);
     BYTE* colorFrame_m = new BYTE[4* 640*480];
 
-
-    load_all_matrices_from_n_files(poses);
-
     Vector3f I_r(0.0,0.0,0.0);
     for(uint j = 1; j<=m; ++j){
         processNextFrame(j, colorFrame_m);
         for(uint pixel = 0; pixel< pixels; pixel++){
+            float step_depth = 0.1;
             for(uint d = 0; d<d_range; d++){
-
                 for(unsigned int j = 0; j < 3; j++){
                     I_r(j) = colorFrame_r[(pixel * 4)+j];
                 }
-
+                _d(pixel, d) += rho_r(pixel, step_depth, colorFrame_r, colorFrame_m, I_r, j, 8);
+                step_depth += 0.1;
             }
         }
     }
@@ -68,28 +71,39 @@ int main(){
 
     //std::cout<<colorFrame;
 
-    delete colorFrame;
+    delete colorFrame_r;
 
 return 0;
 }
 
 float rho_r(int pixel, float depth, BYTE* colorFrame_r, BYTE* colorFrame_m, Vector3f &I_r, int m_frame, int r_frame){
-    Vector2f m_coordinate_f = pi(K * T_mr(m_frame, r_frame).block<3,4>(0,0) * pi_inverse(pixel, depth)) ;
-    
-    Vector3f I_m(0.0,0.0,0.0);
-    int index_in_img =  (int)(m_coordinate_f.x())*640 + (int)(m_coordinate_f.y());
+    Eigen::Vector4f pi_inv = pi_inverse(pixel, depth);
+    Eigen::Matrix4f temp = T_mr(m_frame, r_frame);
+    Eigen::MatrixXf t_mr(3,4);
+    t_mr = temp.block<3,4>(0,0);
+    Eigen::Vector2f m_coordinate_f = pi(K * t_mr * pi_inv ) ;
+    std::cout << "hello" << std::endl;
+    Eigen::Vector3f I_m(0.0,0.0,0.0);
+    int index_in_img =  (int)(m_coordinate_f.y())*640 + (int)(m_coordinate_f.x());
+    std::cout << m_coordinate_f <<std::endl;
     for(unsigned int j = 0; j < 3; j++){ //copying RGB values
         I_m(j) = colorFrame_m[(index_in_img* 4)+j];
     }
+
+    Eigen::Vector3f Diff = I_r - I_m;
+    std::cout << "herere" << std::endl;
+    return Diff.lpNorm<1>();
 }
 
-Vector3f pi_inverse(int pixelNum, float depth){
-    Vector3f u_dot = Vector3f((int)(pixelNum/ 640), pixelNum % 640, 1.0);
-    //std::cout<<u_dot<<std::endl;
-    return (KInv * u_dot) * 1/depth;
+Eigen::Vector4f pi_inverse(int pixelNum, float depth){
+    Eigen::Vector3f u_dot = Vector3f(pixelNum % 640,(int)(pixelNum/ 640), 1.0);
+    std::cout<<u_dot<<std::endl;
+    Eigen::Vector3f tmp= (KInv * u_dot) * 1/depth;
+
+    return Eigen::Vector4f(tmp.x(),tmp.y(),tmp.z(),1.0);
 }
 
-Vector2f pi(Vector3f vec){
+Eigen::Vector2f pi(Vector3f vec){
     return Vector2f(vec.x()/vec.z(), vec.y()/vec.z());
 }
 
@@ -97,7 +111,7 @@ Eigen::Matrix4f T_mr(int m_frame, int r_frame){
     Eigen::Matrix4f temp_mw;
     temp_mw.setIdentity();
     temp_mw.block<3,3>(0,0) = poses[m_frame].block<3,3>(0,0).transpose();
-    temp_mw.block<1,3>(0,3) = -1*poses[m_frame].block<1,3>(0,3);
+    temp_mw.block<3,1>(0,3) = -1 * poses[m_frame].block<3,1>(0,3);
     return temp_mw*poses[r_frame];
 }
 
