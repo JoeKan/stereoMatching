@@ -15,14 +15,20 @@ Eigen::Matrix3f K;
 Eigen::Matrix3f KInv;
 
 std::string DATA_SYNTHETIC_DIR;
+const int pixels = 640*480;
+const int d_range = 30;
+const int m = 7;
+
+std::vector<Eigen::Matrix4f> poses;
 
 int main(){
 
     DATA_SYNTHETIC_DIR = "./output640x480/";
 
-    float _d[30];
-    for(uint i = 0;i<30;++i){
-        _d[i] = MINF;
+    Eigen::MatrixXf _d(pixels, d_range);
+    for(uint i = 0; i < pixels; ++i){
+        for(uint j=0; j< d_range; j++)
+            _d[i][j] = MINF;
     }
 
     K <<    525.0f, 0.0f, 319.5f,
@@ -31,24 +37,24 @@ int main(){
     KInv = K.inverse();
     
 
-    BYTE* colorFrame = new BYTE[4* 640*480];
-    Eigen::MatrixXf Pose(3,4);
-    processNextFrame(7, colorFrame);
+    BYTE* colorFrame_r = new BYTE[4* 640*480];
+    processNextFrame(8, colorFrame_r);
+    BYTE* colorFrame_m = new BYTE[4* 640*480];
 
-    //processNextFrame(29);
-    //processNextFrame(120);
 
-    std::vector<Eigen::Matrix4f> poses;
     load_all_matrices_from_n_files(poses);
 
-    std::cout<<poses[1]<<std::endl;
-
-
     Vector3f I_r(0.0,0.0,0.0);
+    for(uint j = 1; j<=m; ++j){
+        processNextFrame(j, colorFrame_m);
+        for(uint pixel = 0; pixel< pixels; pixel++){
+            for(uint d = 0; d<d_range; d++){
 
-    for(uint i = 0; i< 640*480;i++){
-        for(unsigned int j = 0; j < 3; j++){
-            I_r(j) = colorFrame[(i * 4)+j];
+                for(unsigned int j = 0; j < 3; j++){
+                    I_r(j) = colorFrame_r[(pixel * 4)+j];
+                }
+
+            }
         }
     }
 
@@ -67,12 +73,33 @@ int main(){
 return 0;
 }
 
+float rho_r(int pixel, float depth, BYTE* colorFrame_r, BYTE* colorFrame_m, Vector3f &I_r, int m_frame, int r_frame){
+    Vector2f m_coordinate_f = pi(K * T_mr(m_frame, r_frame).block<3,4>(0,0) * pi_inverse(pixel, depth)) ;
+    
+    Vector3f I_m(0.0,0.0,0.0);
+    int index_in_img =  (int)(m_coordinate_f.x())*640 + (int)(m_coordinate_f.y());
+    for(unsigned int j = 0; j < 3; j++){ //copying RGB values
+        I_m(j) = colorFrame_m[(index_in_img* 4)+j];
+    }
+}
+
 Vector3f pi_inverse(int pixelNum, float depth){
     Vector3f u_dot = Vector3f((int)(pixelNum/ 640), pixelNum % 640, 1.0);
     //std::cout<<u_dot<<std::endl;
     return (KInv * u_dot) * 1/depth;
 }
 
+Vector2f pi(Vector3f vec){
+    return Vector2f(vec.x()/vec.z(), vec.y()/vec.z());
+}
+
+Eigen::Matrix4f T_mr(int m_frame, int r_frame){
+    Eigen::Matrix4f temp_mw;
+    temp_mw.setIdentity();
+    temp_mw.block<3,3>(0,0) = poses[m_frame].block<3,3>(0,0).transpose();
+    temp_mw.block<1,3>(0,3) = -1*poses[m_frame].block<1,3>(0,3);
+    return temp_mw*poses[r_frame];
+}
 
 bool processNextFrame(int filenum, BYTE* colorFrame){
     FreeImageB rgbImg;
@@ -99,10 +126,6 @@ bool processNextFrame(int filenum, BYTE* colorFrame){
 
     return true;
 }
-
-
-
-
 
 void load_all_matrices_from_n_files(std::vector<Eigen::Matrix4f> &P) {
     const int n_images = 120; /*N_FRAMES*100;*/
