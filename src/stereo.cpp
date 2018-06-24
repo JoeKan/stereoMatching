@@ -24,6 +24,8 @@ const int m = 7;
 
 std::vector<Eigen::Matrix4f> poses;
 
+#define uint unsigned int
+
 int main(){
 
     DATA_SYNTHETIC_DIR = "./../output640x480/";
