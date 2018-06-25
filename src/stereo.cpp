@@ -4,6 +4,8 @@
 #include <cstring>
 #include "Eigen.h"
 #include <fstream>
+#include <algorithm>
+#include <tbb/parallel_for.h>
 
 
 bool processNextFrame(int filenum, BYTE* colorFrame);
@@ -18,7 +20,9 @@ Eigen::Matrix3f K;
 Eigen::Matrix3f KInv;
 
 std::string DATA_SYNTHETIC_DIR;
-const int pixels = 640*480;
+const int pixelsWidth = 640;
+const int pixelsHeight = 480;
+const int pixels = pixelsWidth * pixelsHeight;
 const int d_range = 30;
 const int m = 7;
 
@@ -48,25 +52,50 @@ int main(){
     processNextFrame(8, colorFrame_r);
     BYTE* colorFrame_m = new BYTE[4* 640*480];
 
-    Vector3f I_r(0.0,0.0,0.0);
-    for(uint j = 1; j<=m; ++j){
-        processNextFrame(j, colorFrame_m);
-        for(uint pixel = 0; pixel< pixels; pixel++){
-            float step_depth = 0.1;
-            for(uint d = 0; d<d_range; d++){
-                for(unsigned int j = 0; j < 3; j++){
-                    I_r(j) = colorFrame_r[(pixel * 4)+j];
-                }
-                _d(pixel, d) += rho_r(pixel, step_depth, colorFrame_r, colorFrame_m, I_r, j, 8);
-                step_depth += 0.1;
-            }
-        }
+    for(uint frameNum = 1; frameNum<=m; ++frameNum){
+        processNextFrame(frameNum, colorFrame_m);
+		// parallel version
+		tbb::parallel_for(0, pixels, [&](int pixel){
+			float step_depth = 0.1;
+			for (uint d = 0; d<d_range; d++) {
+				Vector3f I_r = {
+					(float)colorFrame_r[(pixel * 4)],
+					(float)colorFrame_r[(pixel * 4) + 1],
+					(float)colorFrame_r[(pixel * 4) + 2] };
+				_d(pixel, d) += rho_r(pixel, step_depth, colorFrame_r, colorFrame_m, I_r, frameNum, 8);
+				step_depth += 0.1;
+			}
+		});
+        /*for(uint pixel = 0; pixel< pixels; pixel++){
+			float step_depth = 0.1;
+			for (uint d = 0; d<d_range; d++) {
+				Vector3f I_r = {
+					(float)colorFrame_r[(pixel * 4)],
+					(float)colorFrame_r[(pixel * 4) + 1],
+					(float)colorFrame_r[(pixel * 4) + 2] };
+				_d(pixel, d) += rho_r(pixel, step_depth, colorFrame_r, colorFrame_m, I_r, frameNum, 8);
+				step_depth += 0.1;
+			}
+        }*/
     }
 
-    //manually check color values
-    for(unsigned int j = 0; j < 3; j++){
-        std::cout<<I_r(j)<<std::endl;
-    }
+	// bruteforce depth map
+	float* inverseDepth = new float[640 * 480];
+	for (uint i = 0; i < pixels; ++i) {
+		float min = 255.0f;
+		uint d = 0;
+		for (uint d = 0; d < d_range; ++d) {
+			if (_d(i, d) < min) {
+				min = _d(i, d);
+			}
+		}
+		inverseDepth[i] = d;
+	}
+
+    ////manually check color values
+    //for(unsigned int j = 0; j < 3; j++){
+    //    std::cout<<I_r(j)<<std::endl;
+    //}
 
     std::cout<<pi_inverse(0, 0.1)<<std::endl;
     std::cout<<pi_inverse(640,0.2)<<std::endl;
@@ -83,10 +112,13 @@ float rho_r(int pixel, float depth, BYTE* colorFrame_r, BYTE* colorFrame_m, Vect
     Eigen::Matrix4f temp = T_mr(m_frame, r_frame);
     Eigen::MatrixXf t_mr(3,4);
     t_mr = temp.block<3,4>(0,0);
-    Eigen::Vector2f m_coordinate_f = pi(K * t_mr * pi_inv ) ;
+    Eigen::Vector2f m_coordinate_f = pi(K * t_mr * pi_inv );
+	// Clamp coordinates to actual image space, TODO: maybe skip if coordinates are out of range?
+	const int coordX = std::max(0, std::min(pixelsWidth, (int)m_coordinate_f.x()));
+	const int coordY = std::max(0, std::min(pixelsHeight, (int)m_coordinate_f.y()));
     std::cout << "hello" << std::endl;
     Eigen::Vector3f I_m(0.0,0.0,0.0);
-    int index_in_img =  (int)(m_coordinate_f.y())*640 + (int)(m_coordinate_f.x());
+    int index_in_img =  coordY*pixelsWidth + coordX;
     std::cout << m_coordinate_f <<std::endl;
     for(unsigned int j = 0; j < 3; j++){ //copying RGB values
         I_m(j) = colorFrame_m[(index_in_img* 4)+j];
@@ -134,7 +166,7 @@ bool processNextFrame(int filenum, BYTE* colorFrame){
         filename = "0" + std::to_string(filenum);
     }
 
-    rgbImg.LoadImageFromFile("./output640x480/" + filename +".jpg");
+    rgbImg.LoadImageFromFile(DATA_SYNTHETIC_DIR + filename +".jpg");
 
     memcpy(colorFrame, rgbImg.data, 4 * 640 * 480);
 
