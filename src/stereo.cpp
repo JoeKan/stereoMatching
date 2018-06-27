@@ -6,6 +6,7 @@
 #include <fstream>
 #include <algorithm>
 #include <tbb/parallel_for.h>
+#include "LoaderEXR.h"
 
 
 bool processNextFrame(int filenum, BYTE* colorFrame);
@@ -41,12 +42,15 @@ int main(){
             _d(i,j) = 0;
     }
 
-    K <<    525.0f, 0.0f, 319.5f,
+    /*K <<    525.0f, 0.0f, 319.5f,
 		    0.0f, 525.0f, 239.5f,
+		    0.0f, 0.0f, 1.0f;*/
+    K <<    577.97f, 0.0f, 320.0f,
+		    0.0f, 575.44f, 240.0f,
 		    0.0f, 0.0f, 1.0f;
     KInv = K.inverse();
-    std::cout << "inverse" << std::endl ;
-    std::cout << KInv << std::endl ;
+    //std::cout << "inverse" << std::endl ;
+    //std::cout << KInv << std::endl ;
 
     BYTE* colorFrame_r = new BYTE[4* 640*480];
     processNextFrame(8, colorFrame_r);
@@ -77,7 +81,12 @@ int main(){
 				step_depth += 0.1;
 			}
         }*/
+        std::cout << "frameNum " << frameNum;
     }
+
+    std::cout << "Going to read exr file";
+    Eigen::MatrixXf image_vir(640, 480, 1);
+    //read_openexr("/media/virendra/data/study/4_sem/3D_Scan/Project/stereoMatching/output640x480/0008.exr", image_vir, 640, 480, 1);
 
 	// bruteforce depth map
 	float* inverseDepth = new float[640 * 480];
@@ -116,22 +125,22 @@ float rho_r(int pixel, float depth, BYTE* colorFrame_r, BYTE* colorFrame_m, Vect
 	// Clamp coordinates to actual image space, TODO: maybe skip if coordinates are out of range?
 	const int coordX = std::max(0, std::min(pixelsWidth, (int)m_coordinate_f.x()));
 	const int coordY = std::max(0, std::min(pixelsHeight, (int)m_coordinate_f.y()));
-    std::cout << "hello" << std::endl;
+    //std::cout << "hello" << std::endl;
     Eigen::Vector3f I_m(0.0,0.0,0.0);
     int index_in_img =  coordY*pixelsWidth + coordX;
-    std::cout << m_coordinate_f <<std::endl;
+    //std::cout << m_coordinate_f <<std::endl;
     for(unsigned int j = 0; j < 3; j++){ //copying RGB values
         I_m(j) = colorFrame_m[(index_in_img* 4)+j];
     }
 
     Eigen::Vector3f Diff = I_r - I_m;
-    std::cout << "herere" << std::endl;
+    //std::cout << "herere" << std::endl;
     return Diff.lpNorm<1>();
 }
 
 Eigen::Vector4f pi_inverse(int pixelNum, float depth){
     Eigen::Vector3f u_dot = Vector3f(pixelNum % 640,(int)(pixelNum/ 640), 1.0);
-    std::cout<<u_dot<<std::endl;
+    //std::cout<<u_dot<<std::endl;
     Eigen::Vector3f tmp= (KInv * u_dot) * 1/depth;
 
     return Eigen::Vector4f(tmp.x(),tmp.y(),tmp.z(),1.0);

@@ -5,6 +5,7 @@
 #include <OpenEXR/ImfInputFile.h>
 #include <OpenEXR/ImfArray.h>
 
+
 static inline void read_openexr(std::string filename, float *image, int width, int height, int n_channels) {
     namespace IMF = OPENEXR_IMF_NAMESPACE;
     IMF::InputFile file (filename.c_str());
