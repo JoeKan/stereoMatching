@@ -95,14 +95,18 @@ int main(){
     std::cout << "DONE" << std::endl;
     // _d why everything inside _d is int ??
     //std::cout << _d << std::endl;
-    std::cout << "_d size = " << _d.rowwise().minCoeff().size() << std::endl;
-   _d_Min = _d.rowwise().minCoeff();
+	tbb::parallel_for(0, pixels, [&](int idx) {
+		int index = 0;
+		_d.row(idx).minCoeff(&index);
+		_d_Min(idx) = 0.1f + index * 0.1f;
+	});
+   //_d_Min = _d.rowwise().minCoeff();
    std::cout << "_d_Min size = " << _d_Min.size() << std::endl;
    // now we need to visualize this _d_Min and comapre it with 0008.exr file
-
+   //std::cout << _d_Min << std::endl;
     std::cout << "Going to read exr file" << std::endl;
     std::vector <float> image_vir(640*480);
-    std::string vir_filename = "/media/virendra/data/study/4_sem/3D_Scan/Project/stereoMatching/output640x480/0008.exr";
+    std::string vir_filename = DATA_SYNTHETIC_DIR + "0008.exr";
     read_openexr(vir_filename,image_vir.data(), 640, 480, 1);
     /*for (std::vector<float>::const_iterator i = image_vir.begin(); i != image_vir.end(); ++i) {
         std::cout << *i << ' ';
@@ -114,20 +118,15 @@ int main(){
     std::cout << "image_vir_Eigen Size= " << image_vir_Eigen.size() << std::endl;
     Eigen::VectorXf Residue = _d_Min - image_vir_Eigen;
     std::cout << "Final L2 norm b/w exr file and calculated depth = " << Residue.lpNorm<2>() << std::endl;
-
-
-	// bruteforce depth map
-	float* inverseDepth = new float[640 * 480];
-	for (uint i = 0; i < pixels; ++i) {
-		float min = 255.0f;
-		uint d = 0;
-		for (uint d = 0; d < d_range; ++d) {
-			if (_d(i, d) < min) {
-				min = _d(i, d);
-			}
-		}
-		inverseDepth[i] = d;
-	}
+	FreeImageB outImage(640, 480, 3);
+	BYTE* outData = new BYTE[640 * 480 * 3];
+	tbb::parallel_for(0, pixels, [&](int idx) {
+		outData[idx * 3] = 255 - _d_Min[idx] / 3.0f * 255;
+		outData[idx * 3 + 1] = 255 - _d_Min[idx] / 3.0f * 255;
+		outData[idx * 3 + 2] = 255 - _d_Min[idx] / 3.0f * 255;
+	});
+	outImage.data = outData;
+	outImage.SaveImageToFile("out.png");
 
     ////manually check color values
     //for(unsigned int j = 0; j < 3; j++){
