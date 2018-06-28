@@ -5,8 +5,8 @@ set(CMAKE_CXX_STANDARD 14)
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 set(FREEIMAGE_FIND_REQUIRED, TRUE)
-find_package(FreeImage)
-find_package(TBB)
+find_package(FreeImage REQUIRED)
+find_package(TBB REQUIRED)
 
 add_executable(StereoMatching src/stereo.cpp src/FreeImageHelper.cpp src/Eigen.h src/FreeImageHelper.h)
 
