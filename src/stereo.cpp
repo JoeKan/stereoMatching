@@ -37,6 +37,7 @@ int main(){
     load_all_matrices_from_n_files(poses);
 
     Eigen::MatrixXf _d(pixels, d_range);
+    Eigen::MatrixXf _d_Min(pixels, 1);
     for(uint i = 0; i < pixels; ++i){
         for(uint j=0; j< d_range; j++)
             _d(i,j) = 0;
@@ -83,10 +84,13 @@ int main(){
         }*/
         std::cout << "frameNum " << frameNum;
     }
+    _d_Min = _d.rowwise().minCoeff();
+    // now we need to visualize this _d_Min and comapre it with 0008.exr file
 
     std::cout << "Going to read exr file";
-    Eigen::MatrixXf image_vir(640, 480, 1);
-    //read_openexr("/media/virendra/data/study/4_sem/3D_Scan/Project/stereoMatching/output640x480/0008.exr", image_vir, 640, 480, 1);
+    //Eigen::MatrixXf image_vir(640, 480, 1);
+    //read_openexr("/media/virendra/data/study/4_sem/3D_Scan/Project/stereoMatching/output640x480/0008.exr",
+    //image_vir, 640, 480, 1);
 
 	// bruteforce depth map
 	float* inverseDepth = new float[640 * 480];
