@@ -32,12 +32,12 @@ std::vector<Eigen::Matrix4f> poses;
 #define uint unsigned int
 
 int main(){
-
+    
     DATA_SYNTHETIC_DIR = "./../output640x480/";
     load_all_matrices_from_n_files(poses);
 
     Eigen::MatrixXf _d(pixels, d_range);
-    Eigen::MatrixXf _d_Min(pixels, 1);
+    Eigen::VectorXf _d_Min(pixels);
     for(uint i = 0; i < pixels; ++i){
         for(uint j=0; j< d_range; j++)
             _d(i,j) = 0;
@@ -58,6 +58,7 @@ int main(){
     BYTE* colorFrame_m = new BYTE[4* 640*480];
 
     for(uint frameNum = 1; frameNum<=m; ++frameNum){
+        std::cout << "START: frameNum " << frameNum <<std::endl;
         processNextFrame(frameNum, colorFrame_m);
 		// parallel version
 		tbb::parallel_for(0, pixels, [&](int pixel){
@@ -82,15 +83,38 @@ int main(){
 				step_depth += 0.1;
 			}
         }*/
-        std::cout << "frameNum " << frameNum;
+        std::cout << "END: frameNum " << frameNum << std::endl;
     }
-    _d_Min = _d.rowwise().minCoeff();
-    // now we need to visualize this _d_Min and comapre it with 0008.exr file
+    //-------------TEST CODE-------
+    /*Eigen::MatrixXf mat(2,4);
+    mat << 7.01, 2.01, 6.01, 9.01,
+           3.01, 11.01, 7.01, 8.01;
+    std::cout << mat.rowwise().minCoeff() << std::endl;*/
 
-    std::cout << "Going to read exr file";
-    //Eigen::MatrixXf image_vir(640, 480, 1);
-    //read_openexr("/media/virendra/data/study/4_sem/3D_Scan/Project/stereoMatching/output640x480/0008.exr",
-    //image_vir, 640, 480, 1);
+    //-----------------------
+    std::cout << "DONE" << std::endl;
+    // _d why everything inside _d is int ??
+    //std::cout << _d << std::endl;
+    std::cout << "_d size = " << _d.rowwise().minCoeff().size() << std::endl;
+   _d_Min = _d.rowwise().minCoeff();
+   std::cout << "_d_Min size = " << _d_Min.size() << std::endl;
+   // now we need to visualize this _d_Min and comapre it with 0008.exr file
+
+    std::cout << "Going to read exr file" << std::endl;
+    std::vector <float> image_vir(640*480);
+    std::string vir_filename = "/media/virendra/data/study/4_sem/3D_Scan/Project/stereoMatching/output640x480/0008.exr";
+    read_openexr(vir_filename,image_vir.data(), 640, 480, 1);
+    /*for (std::vector<float>::const_iterator i = image_vir.begin(); i != image_vir.end(); ++i) {
+        std::cout << *i << ' ';
+    }*/
+    std::cout << std::endl;
+
+    //Eigen::VectorXf image_vir_Eigen(image_vir.data(), image_vir.size());
+    Eigen::Map<Eigen::VectorXf> image_vir_Eigen(image_vir.data(),image_vir.size());
+    std::cout << "image_vir_Eigen Size= " << image_vir_Eigen.size() << std::endl;
+    Eigen::VectorXf Residue = _d_Min - image_vir_Eigen;
+    std::cout << "Final L2 norm b/w exr file and calculated depth = " << Residue.lpNorm<2>() << std::endl;
+
 
 	// bruteforce depth map
 	float* inverseDepth = new float[640 * 480];
@@ -110,8 +134,8 @@ int main(){
     //    std::cout<<I_r(j)<<std::endl;
     //}
 
-    std::cout<<pi_inverse(0, 0.1)<<std::endl;
-    std::cout<<pi_inverse(640,0.2)<<std::endl;
+    //std::cout<<pi_inverse(0, 0.1)<<std::endl;
+    //std::cout<<pi_inverse(640,0.2)<<std::endl;
 
     //std::cout<<colorFrame;
 
@@ -138,7 +162,8 @@ float rho_r(int pixel, float depth, BYTE* colorFrame_r, BYTE* colorFrame_m, Eige
     }
 
     Eigen::Vector3f Diff = I_r - I_m;
-    //std::cout << "herere" << std::endl;
+    //std::cout << "herere = " << Diff.lpNorm<1>() << std::endl;
+    // Question: Won't L1 norm will make values very large?
     return Diff.lpNorm<1>();
 }
 
