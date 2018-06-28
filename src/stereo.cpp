@@ -14,8 +14,8 @@ bool processNextFrame(int filenum, BYTE* colorFrame);
 Eigen::Vector4f pi_inverse(int pixelNum, float depth);
 void load_all_matrices_from_n_files(std::vector<Eigen::Matrix4f> &P);
 Eigen::Matrix4f T_mr(int m_frame, int r_frame);
-Eigen::Vector2f pi(Vector3f vec);
-float rho_r(int pixel, float depth, BYTE* colorFrame_r, BYTE* colorFrame_m, Vector3f &I_r, int m_frame, int r_frame);
+Eigen::Vector2f pi(Eigen::Vector3f vec);
+float rho_r(int pixel, float depth, BYTE* colorFrame_r, BYTE* colorFrame_m, Eigen::Vector3f &I_r, int m_frame, int r_frame);
 
 Eigen::Matrix3f K;
 Eigen::Matrix3f KInv;
@@ -63,7 +63,7 @@ int main(){
 		tbb::parallel_for(0, pixels, [&](int pixel){
 			float step_depth = 0.1;
 			for (uint d = 0; d<d_range; d++) {
-				Vector3f I_r = {
+				Eigen::Vector3f I_r = {
 					(float)colorFrame_r[(pixel * 4)],
 					(float)colorFrame_r[(pixel * 4) + 1],
 					(float)colorFrame_r[(pixel * 4) + 2] };
@@ -120,7 +120,7 @@ int main(){
 return 0;
 }
 
-float rho_r(int pixel, float depth, BYTE* colorFrame_r, BYTE* colorFrame_m, Vector3f &I_r, int m_frame, int r_frame){
+float rho_r(int pixel, float depth, BYTE* colorFrame_r, BYTE* colorFrame_m, Eigen::Vector3f &I_r, int m_frame, int r_frame){
     Eigen::Vector4f pi_inv = pi_inverse(pixel, depth);
     Eigen::Matrix4f temp = T_mr(m_frame, r_frame);
     Eigen::MatrixXf t_mr(3,4);
@@ -143,15 +143,15 @@ float rho_r(int pixel, float depth, BYTE* colorFrame_r, BYTE* colorFrame_m, Vect
 }
 
 Eigen::Vector4f pi_inverse(int pixelNum, float depth){
-    Eigen::Vector3f u_dot = Vector3f(pixelNum % 640,(int)(pixelNum/ 640), 1.0);
+    Eigen::Vector3f u_dot = Eigen::Vector3f(pixelNum % 640,(int)(pixelNum/ 640), 1.0);
     //std::cout<<u_dot<<std::endl;
     Eigen::Vector3f tmp= (KInv * u_dot) * 1/depth;
 
     return Eigen::Vector4f(tmp.x(),tmp.y(),tmp.z(),1.0);
 }
 
-Eigen::Vector2f pi(Vector3f vec){
-    return Vector2f(vec.x()/vec.z(), vec.y()/vec.z());
+Eigen::Vector2f pi(Eigen::Vector3f vec){
+    return Eigen::Vector2f(vec.x()/vec.z(), vec.y()/vec.z());
 }
 
 Eigen::Matrix4f T_mr(int m_frame, int r_frame){
