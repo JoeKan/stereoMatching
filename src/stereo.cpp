@@ -1,19 +1,6 @@
-#include <string>
-#include <iostream>
-#include <cstring>
-#include <fstream>
-#include <algorithm>
-#include <tbb/parallel_for.h>
-
 #include "Eigen.h"
-#include "LoaderEXR.h"
-#include "FreeImageHelper.h" 
 #include "parameters.h"
 #include "utility.h"
-
-Eigen::Vector4f pi_inverse(int pixelNum, float depth);
-Eigen::Matrix4f T_mr(int m_frame, int r_frame);
-Eigen::Vector2f pi(Eigen::Vector3f vec);
 
 bool processNextFrame(int filenum, BYTE* colorFrame);
 void brute_force_depth_calc(BYTE* colorFrame_r);
