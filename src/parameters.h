@@ -1,3 +1,6 @@
+/* All the constant terms should be declared here.
+*/
+
 #if !defined(STEREO_PARAMETERS_H)
 #define STEREO_PARAMETERS_H 1
 

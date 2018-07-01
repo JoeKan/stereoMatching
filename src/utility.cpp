@@ -1,3 +1,6 @@
+/* Please refer the comment written in utility.h file once.
+*/
+
 #include "utility.h"
 #include "parameters.h"
 #include "LoaderEXR.h"

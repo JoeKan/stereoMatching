@@ -1,3 +1,8 @@
+/* This file contains code which will be used by many different files.
+   For example: calculating error term: rho_r or calculating pi() etc.
+   Please include utility.h in your cpp file for using these functions.
+*/
+
 #if !defined(STEREO_UTILITY_H)
 #define STEREO_UTILITY_H 1
 
