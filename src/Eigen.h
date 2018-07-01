@@ -47,10 +47,8 @@ EIGEN_DEFINE_STL_VECTOR_SPECIALIZATION(Eigen::Quaternionf)
 
 
 
-using namespace Eigen;
-
 template<typename T,unsigned int n,unsigned m>
-std::istream &operator>>(std::istream &in, Matrix<T,n,m> &other)
+std::istream &operator>>(std::istream &in, Eigen::Matrix<T,n,m> &other)
 {
 	for(unsigned int i=0; i<other.rows(); i++)
 		for(unsigned int j=0; j<other.cols(); j++)
@@ -59,7 +57,7 @@ std::istream &operator>>(std::istream &in, Matrix<T,n,m> &other)
 }
 
 template<typename T,unsigned int n,unsigned m>
-std::ostream &operator<<(std::ostream &out, const Matrix<T,n,m> &other)
+std::ostream &operator<<(std::ostream &out, const Eigen::Matrix<T,n,m> &other)
 {
 	std::fixed(out);
 	for(int i=0; i<other.rows(); i++) {

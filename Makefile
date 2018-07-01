@@ -5,7 +5,7 @@ SOURCE_DIR = $(PROJECT_ROOT_DIR)/src
 SOURCE_FILES = $(SOURCE_DIR)/stereo.cpp $(SOURCE_DIR)/FreeImageHelper.cpp $(SOURCE_DIR)/Eigen.h $(SOURCE_DIR)/FreeImageHelper.h
 INCLUDE_DIRS = $(PROJECT_ROOT_DIR)/libs/Eigen
 LIBRARIES = -lfreeimage
-CC_FLAGS = -std=c++14 -w
+CC_FLAGS = -std=c++14 -w -O3
 OUTPUT_PATH = $(OUTPUT_DIR)/$(OUTPUT_EXE)
 
 all:
