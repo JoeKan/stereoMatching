@@ -17,6 +17,8 @@
 #include "Eigen.h"
 #include "utility.h"
 
+#define uint unsigned int
+
 float rho_r(int pixel, float depth, BYTE* colorFrame_r, BYTE* colorFrame_m, Eigen::Vector3f &I_r, int m_frame, int r_frame);
 Eigen::Vector4f pi_inverse(int pixelNum, float depth);
 Eigen::Vector2f pi(Eigen::Vector3f vec);
