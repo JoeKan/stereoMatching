@@ -40,6 +40,7 @@ void brute_force_depth_calc(BYTE* colorFrame_r) {
 				step_depth += inc_depth;
 			}
 		});
+        //_d = _d / 7.0f; Depth map is not looking good with this. why?
         std::cout << "END: frameNum " << frameNum << std::endl;
     }
 
