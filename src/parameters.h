@@ -11,6 +11,9 @@ const int pixelsWidth = 640;
 const int pixelsHeight = 480;
 const int pixels = pixelsWidth * pixelsHeight;
 const int d_range = 30;
+const float init_depth = 0.5f;
+const float inc_depth = 0.1f;
+const float max_depth = init_depth + (d_range - 1) * inc_depth;
 const int m = 7;
 
 const std::string DATA_SYNTHETIC_DIR = "./../output640x480/";
