@@ -30,14 +30,14 @@ void brute_force_depth_calc(BYTE* colorFrame_r) {
         processNextFrame(frameNum, colorFrame_m);
 		// parallel version
 		tbb::parallel_for(0, pixels, [&](int pixel){
-			float step_depth = 0.1;
+			float step_depth = init_depth;
 			for (uint d = 0; d<d_range; d++) {
 				Eigen::Vector3f I_r = {
 					(float)colorFrame_r[(pixel * 4)],
 					(float)colorFrame_r[(pixel * 4) + 1],
 					(float)colorFrame_r[(pixel * 4) + 2] };
 				_d(pixel, d) += rho_r(pixel, step_depth, colorFrame_r, colorFrame_m, I_r, frameNum, 8);
-				step_depth += 0.1;
+				step_depth += inc_depth;
 			}
 		});
         std::cout << "END: frameNum " << frameNum << std::endl;
@@ -47,7 +47,7 @@ void brute_force_depth_calc(BYTE* colorFrame_r) {
 	tbb::parallel_for(0, pixels, [&](int idx) {
 		int index = 0;
 		_d.row(idx).minCoeff(&index);
-		_d_Min(idx) = 0.1f + index * 0.1f;
+		_d_Min(idx) = init_depth + index * inc_depth;
 	});
 
    std::cout << "_d_Min size = " << _d_Min.size() << std::endl;
@@ -69,9 +69,11 @@ void brute_force_depth_calc(BYTE* colorFrame_r) {
 	FreeImageB outImage(640, 480, 3);
 	BYTE* outData = new BYTE[640 * 480 * 3];
 	tbb::parallel_for(0, pixels, [&](int idx) {
-		outData[idx * 3] = 255 - _d_Min[idx] / 3.0f * 255;
-		outData[idx * 3 + 1] = 255 - _d_Min[idx] / 3.0f * 255;
-		outData[idx * 3 + 2] = 255 - _d_Min[idx] / 3.0f * 255;
+        // 255 = white, 0 = black
+        // close is white and far is black
+        outData[idx * 3] = 255 - (_d_Min[idx] / max_depth) * 255;
+        outData[idx * 3 + 1] = 255 - (_d_Min[idx] / max_depth) * 255;
+        outData[idx * 3 + 2] = 255 - (_d_Min[idx] / max_depth) * 255;
 	});
 	outImage.data = outData;
 	outImage.SaveImageToFile("out.png");
