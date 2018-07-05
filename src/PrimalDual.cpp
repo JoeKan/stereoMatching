@@ -4,6 +4,7 @@
 
 #include <FreeImage.h>
 #include "Eigen.h"
+#include <cmath>
 // 6.2.3 of A. Chambolle and T. Pock. A first-order primal-dual
 // algorithm for convex problems with applications to imaging.
 float sigma_d(float epsilon, float theta) {
@@ -30,7 +31,7 @@ void computeG(float* g, BYTE* img, int width, int height, float alphaG, float be
 			// forward difference gradient
 			float gx = (x == width - 1) ? 0.0f : img[idx + 1] / 255.0f - img[idx] / 255.0f;
 			float gy = (y == height - 1) ? 0.0f : img[idx + width] / 255.0f - img[idx] / 255.0f;
-			g[idx] = std::expf(-alphaG * std::powf(std::sqrtf(gx*gx + gy * gy), betaG));
+			g[idx] = expf(-alphaG * powf(sqrtf(gx*gx + gy * gy), betaG));
 		}
 	}
 }
@@ -46,7 +47,7 @@ void updateQ(float* g, float* a, float* q, float* d, int width, int height, floa
 			float qx = (q[idx] + sigma_q * g[idx] * dd_x) / (1.0f + sigma_q * epsilon);
 			float qy = (q[idx + width * height] + sigma_q * g[idx] * dd_y) / (1.0f + sigma_q * epsilon);
 
-			float maxq = std::fmaxf(1.0f, std::sqrtf(qx*qx + qy * qy));
+			float maxq = std::fmaxf(1.0f, sqrtf(qx*qx + qy * qy));
 			q[idx] = qx / maxq;
 			q[idx + width * height] = qy / maxq;
 		}

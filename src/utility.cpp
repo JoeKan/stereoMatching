@@ -44,8 +44,9 @@ Eigen::Vector2f pi(Eigen::Vector3f vec){
 Eigen::Matrix4f T_mr(int m_frame, int r_frame){
     Eigen::Matrix4f temp_mw;
     temp_mw.setIdentity();
-    temp_mw.block<3,3>(0,0) = poses[m_frame].block<3,3>(0,0).transpose();
-    temp_mw.block<3,1>(0,3) = -1 * poses[m_frame].block<3,1>(0,3);
+    Eigen::Matrix3f R_wm = poses[m_frame].block<3,3>(0,0);
+    temp_mw.block<3,3>(0,0) = R_wm.transpose();
+    temp_mw.block<3,1>(0,3) = -1 * R_wm.transpose() * poses[m_frame].block<3,1>(0,3);
     return temp_mw*poses[r_frame];
 }
 
