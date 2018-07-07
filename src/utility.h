@@ -25,5 +25,8 @@ Eigen::Vector2f pi(Eigen::Vector3f vec);
 Eigen::Matrix4f T_mr(int m_frame, int r_frame);
 bool processNextFrame(int filenum, BYTE* colorFrame);
 void load_all_matrices_from_n_files(std::vector<Eigen::Matrix4f> &P);
+void read_images(int num, BYTE* colorFrame);
+void cost_calc(BYTE* colorFrame_r, BYTE** colorFrames_b, int current_ref_img, Eigen::MatrixXf& _a);
+void PrimalDual(int current_ref_img, BYTE* colorFrame_r, BYTE** colorFrames_b, Eigen::VectorXf& d_);
 
 #endif

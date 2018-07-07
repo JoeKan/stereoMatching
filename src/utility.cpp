@@ -98,3 +98,42 @@ void load_all_matrices_from_n_files(std::vector<Eigen::Matrix4f> &P) {
         P[i] = Ptmp.inverse().eval().cast<float>();
     }
 }
+
+
+void cost_calc(BYTE* colorFrame_r, BYTE** colorFrames_b, int current_ref_img, Eigen::MatrixXf& _a){
+    //Eigen::MatrixXf _a(pixels, d_range);
+    Eigen::VectorXf _a_Min(pixels);
+    for(uint i = 0; i < pixels; ++i){
+        for(uint j=0; j< a_range; j++)
+            _a(i,j) = 0;
+    }    
+
+    for(uint frameNum = 0; frameNum<m; ++frameNum){
+        std::cout << "START: frameNum " << frameNum <<std::endl;
+		// parallel version
+		tbb::parallel_for(0, pixels, [&](int pixel){
+			float step_depth = init_depth;
+			for (uint d = 0; d<a_range; d++) {
+				Eigen::Vector3f I_r = {
+					(float)colorFrame_r[(pixel * 4)],
+					(float)colorFrame_r[(pixel * 4) + 1],
+					(float)colorFrame_r[(pixel * 4) + 2] };
+				_a(pixel, d) += rho_r(pixel, step_depth, colorFrame_r, colorFrames_b[frameNum], I_r, frameNum, current_ref_img);
+				step_depth += inc_a;
+			}
+		});
+        //_d = _d / 7.0f; Depth map is not looking good with this. why?
+        std::cout << "END: frameNum " << frameNum << std::endl;
+    }
+}
+
+void read_images(int num, BYTE* colorFrame){
+    FreeImageB rgbImg;
+    std::string filename;
+
+    char buf[20];
+    snprintf(buf, sizeof buf, "/%04d", num);
+    filename = std::string(DATA_SYNTHETIC_DIR) + std::string(buf) + ".jpg";
+    rgbImg.LoadImageFromFile(filename);
+    memcpy(colorFrame, rgbImg.data, 4 * 640 * 480);
+}

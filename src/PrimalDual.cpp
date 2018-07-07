@@ -5,6 +5,9 @@
 #include <FreeImage.h>
 #include "Eigen.h"
 #include <cmath>
+#include "parameters.h"
+#include "utility.h"
+
 // 6.2.3 of A. Chambolle and T. Pock. A first-order primal-dual
 // algorithm for convex problems with applications to imaging.
 float sigma_d(float epsilon, float theta) {
@@ -35,7 +38,7 @@ void computeG(float* g, BYTE* img, int width, int height, float alphaG, float be
 		}
 	}
 }
-void updateQ(float* g, float* a, float* q, float* d, int width, int height, float sigma_q, float sigma_d, float epsilon, float theta) {
+void updateQ(float* g, Eigen::VectorXf& a, Eigen::VectorXf& q, Eigen::VectorXf& d, int width, int height, float sigma_q, float sigma_d, float epsilon, float theta) {
 	for (int y = 0; y < height; y++) {
 		for (int x = 0; x < width; x++) {
 			int idx = y * width + x;
@@ -53,7 +56,7 @@ void updateQ(float* g, float* a, float* q, float* d, int width, int height, floa
 		}
 	}
 }
-void updateD(float* g, float* a, float* q, float* d, int width, int height, float sigma_q, float sigma_d, float epsilon, float theta) {
+void updateD(float* g, Eigen::VectorXf& a, Eigen::VectorXf& q, Eigen::VectorXf& d, int width, int height, float sigma_q, float sigma_d, float epsilon, float theta) {
 	for (int y = 0; y < height; y++) {
 		for (int x = 0; x < width; x++) {
 			int idx = y * width + x;
@@ -67,8 +70,12 @@ void updateD(float* g, float* a, float* q, float* d, int width, int height, floa
 		}
 	}
 }
-void PrimalDual(BYTE* colorFrame_r, Eigen::MatrixXf& d, Eigen::VectorXf& d_min) {
+void PrimalDual(int current_ref_img, BYTE* colorFrame_r, BYTE** colorFrames_b, Eigen::VectorXf& d_) {
     /* TODO */
+
+	//_Eaux_Min = a_u for all pixels as written in the paper
+	// d_ is d_u for all pixels per frame
+
 	using namespace Eigen;
 	float alphaG = 100.0f;
 	float betaG = 1.6f;
@@ -77,18 +84,48 @@ void PrimalDual(BYTE* colorFrame_r, Eigen::MatrixXf& d, Eigen::VectorXf& d_min) 
 	float theta_step = 0.97;
 	float epsilon = 0.00147;
 	float lambda = 0.80;
+	float theta = theta_start;
 
 	float* g = new float[640 * 480];
 	computeG(g, colorFrame_r, 640, 480, alphaG, betaG);
-	float* q = new float[2 * 640 * 480];
-	float* a = d_min.data(); // TODO: use minimized Eaux from paper
-	float* d_ = new float[640 * 480];
-	std::copy(a, a + 640 * 480, d_);
-	float theta = theta_start;
+	Eigen::VectorXf q(640,480);
+
+	Eigen::MatrixXf C_u_a(pixels, a_range);
+	for(uint i = 0; i < pixels; ++i){
+        for(uint j=0; j< a_range; j++)
+            C_u_a(i,j) = 0;
+    }
+
+	cost_calc(colorFrame_r, colorFrames_b, current_ref_img, C_u_a);
+
+	//initializing "_Eaux_Min" vector by doing argmin(cost ie C_a)
+	Eigen::VectorXf _Eaux_Min(pixels);
+	tbb::parallel_for(0, pixels, [&](int idx) {
+		int index = 0;
+		C_u_a.row(idx).minCoeff(&index);
+		_Eaux_Min(idx) = init_depth + index * inc_a;
+	});
+
+	//first time initialization of d_u = a_u. check if this assignment makes a deep copy.
+	d_ = _Eaux_Min;
+
+	updateQ(g, _Eaux_Min, q, d_, 640, 480, sigma_q(epsilon, theta), sigma_d(epsilon, theta), epsilon, theta);
+	updateD(g, _Eaux_Min, q, d_, 640, 480, sigma_q(epsilon, theta), sigma_d(epsilon, theta), epsilon, theta);
+
+	
 	int n = 1;
+	Eigen::MatrixXf _Eaux(pixels, a_range);
 	while (theta > theta_min) {
-		updateQ(g, a, q, d_, 640, 480, sigma_q(epsilon, theta), sigma_d(epsilon, theta), epsilon, theta);
-		updateD(g, a, q, d_, 640, 480, sigma_q(epsilon, theta), sigma_d(epsilon, theta), epsilon, theta);
+		create_Eaux(d_, _Eaux_Min, theta, lambda, C_u_a, _Eaux);
+
+		tbb::parallel_for(0, pixels, [&](int idx) {
+			int index = 0;
+			_Eaux.row(idx).minCoeff(&index);
+			_Eaux_Min(idx) = init_depth + index * inc_a;
+		});
+
+		updateQ(g, _Eaux_Min, q, d_, 640, 480, sigma_q(epsilon, theta), sigma_d(epsilon, theta), epsilon, theta);
+		updateD(g, _Eaux_Min, q, d_, 640, 480, sigma_q(epsilon, theta), sigma_d(epsilon, theta), epsilon, theta);
 
 		// TODO: update a - see equations 13 and 14 of the paper.
 
@@ -96,4 +133,13 @@ void PrimalDual(BYTE* colorFrame_r, Eigen::MatrixXf& d, Eigen::VectorXf& d_min) 
 		theta *= (1 - beta * n);
 		n++;
 	}
+}
+
+void create_Eaux(Eigen::VectorXf& d_, Eigen::VectorXf& a_, float theta, float lambda, Eigen::MatrixXf& C_u_a, Eigen::MatrixXf& _Eaux){
+	tbb::parallel_for(0, pixels, [&](int pixel){
+		for (uint i = 0; i < a_range; i++) {
+			float E = (1/theta * (d_[pixel] - a_[pixel]) * (d_[pixel] - a_[pixel])) + lambda * C_u_a(pixel, i);
+			_Eaux(pixel, i) = E;
+		}
+	});
 }
