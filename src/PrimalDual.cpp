@@ -38,7 +38,14 @@ void computeG(float* g, BYTE* img, int width, int height, float alphaG, float be
 		}
 	}
 }
-void updateQ(float* g, Eigen::VectorXf& a, Eigen::VectorXf& q, Eigen::VectorXf& d, int width, int height, float sigma_q, float sigma_d, float epsilon, float theta) {
+void updateQ(float* g, Eigen::VectorXf& a_, Eigen::VectorXf& q_, Eigen::VectorXf& d_, int width, int height, float sigma_q, float sigma_d, float epsilon, float theta) {
+	float *a  = new float[pixels]; 
+	float *q = new float[pixels]; 
+	float *d = new float[pixels]; 
+	Eigen::Map<Eigen::VectorXf>( a, a_.rows(), a_.cols() ) =  a_;
+	Eigen::Map<Eigen::VectorXf>( q, q_.rows(), q_.cols() ) =  q_;
+	Eigen::Map<Eigen::VectorXf>( d, d_.rows(), d_.cols() ) =  d_;
+	
 	for (int y = 0; y < height; y++) {
 		for (int x = 0; x < width; x++) {
 			int idx = y * width + x;
@@ -56,7 +63,14 @@ void updateQ(float* g, Eigen::VectorXf& a, Eigen::VectorXf& q, Eigen::VectorXf& 
 		}
 	}
 }
-void updateD(float* g, Eigen::VectorXf& a, Eigen::VectorXf& q, Eigen::VectorXf& d, int width, int height, float sigma_q, float sigma_d, float epsilon, float theta) {
+void updateD(float* g, Eigen::VectorXf& a_, Eigen::VectorXf& q_, Eigen::VectorXf& d_, int width, int height, float sigma_q, float sigma_d, float epsilon, float theta) {
+	float *a  = new float[pixels]; 
+	float *q = new float[pixels]; 
+	float *d = new float[pixels]; 
+	Eigen::Map<Eigen::VectorXf>( a, a_.rows(), a_.cols() ) =  a_;
+	Eigen::Map<Eigen::VectorXf>( q, q_.rows(), q_.cols() ) =  q_;
+	Eigen::Map<Eigen::VectorXf>( d, d_.rows(), d_.cols() ) =  d_;
+
 	for (int y = 0; y < height; y++) {
 		for (int x = 0; x < width; x++) {
 			int idx = y * width + x;
