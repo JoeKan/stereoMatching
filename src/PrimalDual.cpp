@@ -8,6 +8,8 @@
 #include "parameters.h"
 #include "utility.h"
 
+void create_Eaux(Eigen::VectorXf& d_, Eigen::VectorXf& a_, float theta, float lambda, Eigen::MatrixXf& C_u_a, Eigen::MatrixXf& _Eaux);
+
 // 6.2.3 of A. Chambolle and T. Pock. A first-order primal-dual
 // algorithm for convex problems with applications to imaging.
 float sigma_d(float epsilon, float theta) {
@@ -85,8 +87,6 @@ void updateD(float* g, Eigen::VectorXf& a_, Eigen::VectorXf& q_, Eigen::VectorXf
 	}
 }
 void PrimalDual(int current_ref_img, BYTE* colorFrame_r, BYTE** colorFrames_b, Eigen::VectorXf& d_) {
-    /* TODO */
-
 	//_Eaux_Min = a_u for all pixels as written in the paper
 	// d_ is d_u for all pixels per frame
 
@@ -102,7 +102,9 @@ void PrimalDual(int current_ref_img, BYTE* colorFrame_r, BYTE** colorFrames_b, E
 
 	float* g = new float[640 * 480];
 	computeG(g, colorFrame_r, 640, 480, alphaG, betaG);
-	Eigen::VectorXf q(640,480);
+	Eigen::VectorXf q(640*480);
+
+	std::cout << __func__ << ":    " << "using Primal Dual Algo" << std::endl;
 
 	Eigen::MatrixXf C_u_a(pixels, a_range);
 	for(uint i = 0; i < pixels; ++i){
@@ -140,8 +142,6 @@ void PrimalDual(int current_ref_img, BYTE* colorFrame_r, BYTE** colorFrames_b, E
 
 		updateQ(g, _Eaux_Min, q, d_, 640, 480, sigma_q(epsilon, theta), sigma_d(epsilon, theta), epsilon, theta);
 		updateD(g, _Eaux_Min, q, d_, 640, 480, sigma_q(epsilon, theta), sigma_d(epsilon, theta), epsilon, theta);
-
-		// TODO: update a - see equations 13 and 14 of the paper.
 
 		float beta = (theta > 1e-3) ? 1e-3 : 1e-4;
 		theta *= (1 - beta * n);

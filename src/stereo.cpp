@@ -1,6 +1,7 @@
 #include "Eigen.h"
 #include "parameters.h"
 #include "utility.h"
+#include "FreeImageHelper.h" 
 
 bool processNextFrame(int filenum, BYTE* colorFrame);
 void brute_force_depth_calc(BYTE* colorFrame_r);
@@ -38,7 +39,17 @@ int main(){
     //------Primal_Dual-------------
     Eigen::VectorXf d_(pixels);
     PrimalDual(current_ref_img, colorFrame_r, colorFrames_b, d_);
-
- 
+	
+	FreeImageB outImage(640, 480, 3);
+	BYTE* outData = new BYTE[640 * 480 * 3];
+	tbb::parallel_for(0, pixels, [&](int idx) {
+        // 255 = white, 0 = black
+        // close is white and far is black
+        outData[idx * 3] = 255 - (d_[idx] / max_depth) * 255;
+        outData[idx * 3 + 1] = 255 - (d_[idx] / max_depth) * 255;
+        outData[idx * 3 + 2] = 255 - (d_[idx] / max_depth) * 255;
+	});
+	outImage.data = outData;
+	outImage.SaveImageToFile("out.png");
     return 0;
 }
