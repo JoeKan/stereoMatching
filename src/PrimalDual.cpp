@@ -5,6 +5,7 @@
 #include <FreeImage.h>
 #include "Eigen.h"
 #include <cmath>
+#include "parameters.h"
 // 6.2.3 of A. Chambolle and T. Pock. A first-order primal-dual
 // algorithm for convex problems with applications to imaging.
 float sigma_d(float epsilon, float theta) {
@@ -67,6 +68,28 @@ void updateD(float* g, float* a, float* q, float* d, int width, int height, floa
 		}
 	}
 }
+
+/* dimension of d = pixels = 307200
+   dimension of G = diag(pixels) = pixels x pixels (matrix)
+   dim (A) = pixels x pixels (not sure here?)
+   dim (q) = pixels
+   dim(a) = pixels
+
+   Please note that:
+   q = q_n+1
+   a = a_n
+*/
+void New_updateD(Eigen::VectorXf &d, Eigen::DiagonalMatrix<float, pixels> &G, Eigen::MatrixXf &A, Eigen::VectorXf &q, Eigen::VectorXf &a, float sigma_d, float theta) {
+	Eigen::VectorXf grads(pixels);
+	float normalization_factor;
+
+	grads = sigma_d * (G * A.transpose() * q + (1/theta) * a);
+	grads = d + grads;
+	normalization_factor = 1 + (sigma_d / theta);
+
+	d = grads / normalization_factor;
+}
+
 void PrimalDual(BYTE* colorFrame_r, Eigen::MatrixXf& d, Eigen::VectorXf& d_min) {
     /* TODO */
 	using namespace Eigen;
