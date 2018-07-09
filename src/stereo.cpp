@@ -7,8 +7,10 @@ bool processNextFrame(int filenum, BYTE* colorFrame);
 void brute_force_depth_calc(BYTE* colorFrame_r);
 std::vector<Eigen::Matrix4f> poses;
 
-Eigen::Matrix3f K;
-Eigen::Matrix3f KInv;
+Eigen::Matrix4f K;
+Eigen::Matrix4f KInv;
+
+//need an error heat map (red is very off, blue is good, yellow is middle ground)
 
 #define uint unsigned int
 
@@ -26,18 +28,19 @@ int main(){
         read_images(current_ref_img - i - 1, colorFrames_b[i]);
     }
     
-    K << 577.97f, 0.0f, 320.0f,
-		 0.0f, 575.44f, 240.0f,
-		 0.0f, 0.0f, 1.0f;
+    K << 577.97f, 0.0f, 320.0f, 0,
+		 0.0f, 575.44f, 240.0f, 0,
+		 0.0f, 0.0f, 1.0f, 0,
+         0, 0, 0, 1;
 
     KInv = K.inverse();
     load_all_matrices_from_n_files(poses);
     
     processNextFrame(8, colorFrame_r);
-    //brute_force_depth_calc(colorFrame_r);
+    brute_force_depth_calc(colorFrame_r);
 
     //------Primal_Dual-------------
-    Eigen::VectorXf d_(pixels);
+    /*Eigen::VectorXf d_(pixels);
     PrimalDual(current_ref_img, colorFrame_r, colorFrames_b, d_);
 	
 	FreeImageB outImage(640, 480, 3);
@@ -50,6 +53,6 @@ int main(){
         outData[idx * 3 + 2] = 255 - (d_[idx] / max_depth) * 255;
 	});
 	outImage.data = outData;
-	outImage.SaveImageToFile("out.png");
+	outImage.SaveImageToFile("out.png");*/
     return 0;
 }

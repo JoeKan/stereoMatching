@@ -91,13 +91,13 @@ void PrimalDual(int current_ref_img, BYTE* colorFrame_r, BYTE** colorFrames_b, E
 	// d_ is d_u for all pixels per frame
 
 	using namespace Eigen;
-	float alphaG = 100.0f;
-	float betaG = 1.6f;
-	float theta_start = 0.2;
-	float theta_min = 1.0e-4;
-	float theta_step = 0.97;
-	float epsilon = 0.00147;
-	float lambda = 0.80;
+	float alphaG = 100.0f; // <- bad, i used 1
+	float betaG = 1.6f; // <- bad, i used 0.1
+	float theta_start = 0.2; // <- good
+	float theta_min = 1.0e-4; // <- good
+	float theta_step = 0.97; // <- good
+	float epsilon = 0.00147; // <- good
+	float lambda = 0.80; // <- good maybe 1.0
 	float theta = theta_start;
 
 	float* g = new float[640 * 480];
@@ -119,7 +119,7 @@ void PrimalDual(int current_ref_img, BYTE* colorFrame_r, BYTE** colorFrames_b, E
 	tbb::parallel_for(0, pixels, [&](int idx) {
 		int index = 0;
 		C_u_a.row(idx).minCoeff(&index);
-		_Eaux_Min(idx) = init_depth + index * inc_a;
+		_Eaux_Min(idx) = min_depth + index * inc_a;
 	});
 
 	//first time initialization of d_u = a_u. check if this assignment makes a deep copy.
@@ -137,7 +137,7 @@ void PrimalDual(int current_ref_img, BYTE* colorFrame_r, BYTE** colorFrames_b, E
 		tbb::parallel_for(0, pixels, [&](int idx) {
 			int index = 0;
 			_Eaux.row(idx).minCoeff(&index);
-			_Eaux_Min(idx) = init_depth + index * inc_a;
+			_Eaux_Min(idx) = min_depth + index * inc_a;
 		});
 
 		updateQ(g, _Eaux_Min, q, d_, 640, 480, sigma_q(epsilon, theta), sigma_d(epsilon, theta), epsilon, theta);

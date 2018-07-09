@@ -8,9 +8,9 @@
 
 float rho_r(int pixel, float depth, BYTE* colorFrame_r, BYTE* colorFrame_m, Eigen::Vector3f &I_r, int m_frame, int r_frame){
     Eigen::Vector4f pi_inv = pi_inverse(pixel, depth);
-    Eigen::Matrix4f temp = T_mr(m_frame, r_frame);
-    Eigen::MatrixXf t_mr(3,4);
-    t_mr = temp.block<3,4>(0,0);
+    Eigen::Matrix4f t_mr = T_mr(m_frame, r_frame);
+    // Eigen::MatrixXf t_mr(3,4);
+    // t_mr = temp.block<3,4>(0,0);
     Eigen::Vector2f m_coordinate_f = pi(K * t_mr * pi_inv );
 	// Clamp coordinates to actual image space, TODO: maybe skip if coordinates are out of range?
 	const int coordX = std::max(0, std::min(pixelsWidth, (int)m_coordinate_f.x()));
@@ -30,24 +30,24 @@ float rho_r(int pixel, float depth, BYTE* colorFrame_r, BYTE* colorFrame_m, Eige
 }
 
 Eigen::Vector4f pi_inverse(int pixelNum, float depth){
-    Eigen::Vector3f u_dot = Eigen::Vector3f(pixelNum % 640,(int)(pixelNum/ 640), 1.0);
-    //std::cout<<u_dot<<std::endl;
-    Eigen::Vector3f tmp= (KInv * u_dot) * 1/depth;
+    Eigen::Vector4f u_dot = Eigen::Vector4f((pixelNum % 640)*depth,(int)(pixelNum/ 640)*depth, depth, 1);
+    Eigen::Vector4f tmp= KInv * u_dot;
 
-    return Eigen::Vector4f(tmp.x(),tmp.y(),tmp.z(),1.0);
+    return tmp;
 }
 
-Eigen::Vector2f pi(Eigen::Vector3f vec){
+Eigen::Vector2f pi(Eigen::Vector4f vec){
     return Eigen::Vector2f(vec.x()/vec.z(), vec.y()/vec.z());
 }
 
 Eigen::Matrix4f T_mr(int m_frame, int r_frame){
-    Eigen::Matrix4f temp_mw;
-    temp_mw.setIdentity();
-    Eigen::Matrix3f R_wm = poses[m_frame].block<3,3>(0,0);
-    temp_mw.block<3,3>(0,0) = R_wm.transpose();
-    temp_mw.block<3,1>(0,3) = -1 * R_wm.transpose() * poses[m_frame].block<3,1>(0,3);
-    return temp_mw*poses[r_frame];
+    // Eigen::Matrix4f temp_mw;
+    // temp_mw.setIdentity();
+    // Eigen::Matrix3f R_wm = poses[m_frame].block<3,3>(0,0);
+    // temp_mw.block<3,3>(0,0) = R_wm.transpose();
+    // temp_mw.block<3,1>(0,3) = -1 * R_wm.transpose() * poses[m_frame].block<3,1>(0,3);
+
+    return poses[m_frame].inverse().eval()*poses[r_frame];
 }
 
 bool processNextFrame(int filenum, BYTE* colorFrame){
@@ -112,7 +112,7 @@ void cost_calc(BYTE* colorFrame_r, BYTE** colorFrames_b, int current_ref_img, Ei
         std::cout << "START: frameNum " << frameNum <<std::endl;
 		// parallel version
 		tbb::parallel_for(0, pixels, [&](int pixel){
-			float step_depth = init_depth;
+			float step_depth = min_depth;
 			for (uint d = 0; d<a_range; d++) {
 				Eigen::Vector3f I_r = {
 					(float)colorFrame_r[(pixel * 4)],

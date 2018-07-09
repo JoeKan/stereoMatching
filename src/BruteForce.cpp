@@ -30,7 +30,7 @@ void brute_force_depth_calc(BYTE* colorFrame_r) {
         processNextFrame(frameNum, colorFrame_m);
 		// parallel version
 		tbb::parallel_for(0, pixels, [&](int pixel){
-			float step_depth = init_depth;
+			float step_depth = min_depth;
 			for (uint d = 0; d<d_range; d++) {
 				Eigen::Vector3f I_r = {
 					(float)colorFrame_r[(pixel * 4)],
@@ -48,7 +48,7 @@ void brute_force_depth_calc(BYTE* colorFrame_r) {
 	tbb::parallel_for(0, pixels, [&](int idx) {
 		int index = 0;
 		_d.row(idx).minCoeff(&index);
-		_d_Min(idx) = init_depth + index * inc_depth;
+		_d_Min(idx) = min_depth + index * inc_depth;
 	});
 
    std::cout << "_d_Min size = " << _d_Min.size() << std::endl;
