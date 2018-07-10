@@ -25,7 +25,7 @@ int main(){
     }
 
     for(uint i=0;i<m;++i){
-        read_images(current_ref_img - i - 1, colorFrames_b[i]);
+        read_images(current_ref_img - m + i, colorFrames_b[i]);
     }
     
     K << 577.97f, 0.0f, 320.0f, 0,
@@ -37,10 +37,10 @@ int main(){
     load_all_matrices_from_n_files(poses);
     
     processNextFrame(8, colorFrame_r);
-    brute_force_depth_calc(colorFrame_r);
+    //brute_force_depth_calc(colorFrame_r);
 
     //------Primal_Dual-------------
-    /*Eigen::VectorXf d_(pixels);
+    Eigen::VectorXf d_(pixels);
     PrimalDual(current_ref_img, colorFrame_r, colorFrames_b, d_);
 	
 	FreeImageB outImage(640, 480, 3);
@@ -53,6 +53,6 @@ int main(){
         outData[idx * 3 + 2] = 255 - (d_[idx] / max_depth) * 255;
 	});
 	outImage.data = outData;
-	outImage.SaveImageToFile("out.png");*/
+	outImage.SaveImageToFile("out_primaldual.png");
     return 0;
 }

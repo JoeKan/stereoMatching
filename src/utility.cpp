@@ -20,7 +20,7 @@ float rho_r(int pixel, float depth, BYTE* colorFrame_r, BYTE* colorFrame_m, Eige
     int index_in_img =  coordY*pixelsWidth + coordX;
     //std::cout << m_coordinate_f <<std::endl;
     for(unsigned int j = 0; j < 3; j++){ //copying RGB values
-        I_m(j) = colorFrame_m[(index_in_img* 4)+j];
+        I_m(j) = colorFrame_m[(index_in_img* 4)+j] / 255.0f;
     }
 
     Eigen::Vector3f Diff = I_r - I_m;
@@ -115,9 +115,9 @@ void cost_calc(BYTE* colorFrame_r, BYTE** colorFrames_b, int current_ref_img, Ei
 			float step_depth = min_depth;
 			for (uint d = 0; d<a_range; d++) {
 				Eigen::Vector3f I_r = {
-					(float)colorFrame_r[(pixel * 4)],
-					(float)colorFrame_r[(pixel * 4) + 1],
-					(float)colorFrame_r[(pixel * 4) + 2] };
+					(float)colorFrame_r[(pixel * 4)] / 255.0f,
+					(float)colorFrame_r[(pixel * 4) + 1] / 255.0f,
+					(float)colorFrame_r[(pixel * 4) + 2] / 255.0f };
 				_a(pixel, d) += rho_r(pixel, step_depth, colorFrame_r, colorFrames_b[frameNum], I_r, frameNum, current_ref_img);
 				step_depth += inc_a;
 			}

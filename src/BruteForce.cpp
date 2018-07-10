@@ -33,9 +33,9 @@ void brute_force_depth_calc(BYTE* colorFrame_r) {
 			float step_depth = min_depth;
 			for (uint d = 0; d<d_range; d++) {
 				Eigen::Vector3f I_r = {
-					(float)colorFrame_r[(pixel * 4)],
-					(float)colorFrame_r[(pixel * 4) + 1],
-					(float)colorFrame_r[(pixel * 4) + 2] };
+					(float)colorFrame_r[(pixel * 4)] / 255.0f,
+					(float)colorFrame_r[(pixel * 4) + 1] / 255.0f,
+					(float)colorFrame_r[(pixel * 4) + 2] / 255.0f };
 				_d(pixel, d) += rho_r(pixel, step_depth, colorFrame_r, colorFrame_m, I_r, frameNum, 8);
 				step_depth += inc_depth;
 			}
