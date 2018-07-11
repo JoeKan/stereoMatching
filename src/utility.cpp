@@ -104,7 +104,7 @@ void cost_calc(BYTE* colorFrame_r, BYTE** colorFrames_b, int current_ref_img, Ei
     //Eigen::MatrixXf _a(pixels, d_range);
     Eigen::VectorXf _a_Min(pixels);
     for(uint i = 0; i < pixels; ++i){
-        for(uint j=0; j< a_range; j++)
+        for(uint j=0; j< d_range; j++)
             _a(i,j) = 0;
     }    
 
@@ -113,13 +113,13 @@ void cost_calc(BYTE* colorFrame_r, BYTE** colorFrames_b, int current_ref_img, Ei
 		// parallel version
 		tbb::parallel_for(0, pixels, [&](int pixel){
 			float step_depth = min_depth;
-			for (uint d = 0; d<a_range; d++) {
+			for (uint d = 0; d<d_range; d++) {
 				Eigen::Vector3f I_r = {
 					(float)colorFrame_r[(pixel * 4)] / 255.0f,
 					(float)colorFrame_r[(pixel * 4) + 1] / 255.0f,
 					(float)colorFrame_r[(pixel * 4) + 2] / 255.0f };
 				_a(pixel, d) += rho_r(pixel, step_depth, colorFrame_r, colorFrames_b[frameNum], I_r, frameNum, current_ref_img);
-				step_depth += inc_a;
+				step_depth += inc_depth;
 			}
 		});
         //_d = _d / 7.0f; Depth map is not looking good with this. why?
