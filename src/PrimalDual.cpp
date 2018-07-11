@@ -34,24 +34,53 @@ float toGray(float r, float g, float b) {
 }
 void computeG(float* g, BYTE* img, int width, int height, float alphaG, float betaG) {
 	// equation 5 of the paper
-	for (int y = 0; y < height; y++) {
-		for (int x = 0; x < width; x++) {
-			int idx = (y * width + x) * 4;
-			// forward difference gradient
-			const float gray = toGray(img[idx] / 255.0f, img[idx + 1] / 255.0f, img[idx + 2] / 255.0f);
-			const float gray_right = (x == width - 1) ? 0.0f :
-				toGray(img[idx + 4] / 255.0f,
-					img[idx + 5] / 255.0f,
-					img[idx + 6] / 255.0f);
-			const float gray_down = (y == height - 1) ? 0.0f :
-				toGray(img[idx + width * 4] / 255.0f,
-					img[idx + width * 4 + 1] / 255.0f,
-					img[idx + width * 4 + 2] / 255.0f);
-			float gx = gray_right - gray;
-			float gy = gray_down - gray;
-			g[idx/4] = expf(-alphaG * powf(sqrtf(gx*gx + gy * gy), betaG));
-		}
-	}
+	tbb::parallel_for(0, pixels, [=](int i) {
+		const int y = i / width;
+		const int x = i % width;
+		int idx = i * 4;
+		const float gray = toGray(img[idx] / 255.0f, img[idx + 1] / 255.0f, img[idx + 2] / 255.0f);
+		const float gray_right = (x == width - 1) ? 0.0f :
+			toGray(img[idx + 4] / 255.0f,
+				img[idx + 5] / 255.0f,
+				img[idx + 6] / 255.0f);
+		const float gray_left = (x == 0) ? 0.0f :
+			toGray(img[idx - 4] / 255.0f,
+				img[idx - 3] / 255.0f,
+				img[idx - 2] / 255.0f);
+		const float gray_down = (y == height - 1) ? 0.0f :
+			toGray(img[idx + width * 4] / 255.0f,
+				img[idx + width * 4 + 1] / 255.0f,
+				img[idx + width * 4 + 2] / 255.0f);
+		const float gray_up = (y == 0) ? 0.0f :
+			toGray(img[idx - width * 4] / 255.0f,
+				img[idx - width * 4 + 1] / 255.0f,
+				img[idx - width * 4 + 2] / 255.0f);
+		// forward difference gradient
+		//float gx = gray_right - gray;
+		//float gy = gray_down - gray;
+		// central difference gradient
+		float gx = gray_right - gray_left;
+		float gy = gray_down - gray_up;
+		g[i] = expf(-alphaG * powf(sqrtf(gx*gx + gy * gy), betaG));
+	});
+	//for (int y = 0; y < height; y++) {
+	//	for (int x = 0; x < width; x++) {
+	//		int idx = (y * width + x) * 4;
+	//		// forward difference gradient
+	//		const float gray = toGray(img[idx] / 255.0f, img[idx + 1] / 255.0f, img[idx + 2] / 255.0f);
+	//		const float gray_right = (x == width - 1) ? 0.0f :
+	//			toGray(img[idx + 4] / 255.0f,
+	//				img[idx + 5] / 255.0f,
+	//				img[idx + 6] / 255.0f);
+	//		const float gray_down = (y == height - 1) ? 0.0f :
+	//			toGray(img[idx + width * 4] / 255.0f,
+	//				img[idx + width * 4 + 1] / 255.0f,
+	//				img[idx + width * 4 + 2] / 255.0f);
+	//		float gx = gray_right - gray;
+	//		float gy = gray_down - gray;
+	//		g[idx/4] = expf(-alphaG * powf(sqrtf(gx*gx + gy * gy), betaG));
+	//	}
+	//}
 }
 void updateQ(float* g, Eigen::VectorXf& a_, Eigen::VectorXf& q_, Eigen::VectorXf& d_, int width, int height, float sigma_q, float sigma_d, float epsilon, float theta) {
 	float *a  = a_.data(); 
@@ -60,23 +89,45 @@ void updateQ(float* g, Eigen::VectorXf& a_, Eigen::VectorXf& q_, Eigen::VectorXf
 	//Eigen::Map<Eigen::VectorXf>( a, a_.rows(), a_.cols() ) =  a_;
 	//Eigen::Map<Eigen::VectorXf>( q, q_.rows(), q_.cols() ) =  q_;
 	//Eigen::Map<Eigen::VectorXf>( d, d_.rows(), d_.cols() ) =  d_;
-	
-	for (int y = 0; y < height; y++) {
-		for (int x = 0; x < width; x++) {
-			int idx = y * width + x;
-			// gradient with forward difference
-			// TODO use closed form
-			float dd_x = (x == width - 1) ? 0.0f : d[idx + 1] - d[idx];
-			float dd_y = (y == height - 1) ? 0.0f : d[idx + width] - d[idx];
 
-			float qx = (q[idx] + sigma_q * g[idx] * dd_x) / (1.0f + sigma_q * epsilon);
-			float qy = (q[idx + width * height] + sigma_q * g[idx] * dd_y) / (1.0f + sigma_q * epsilon);
+	tbb::parallel_for(0, pixels, [=](int i) {
+		const int y = i / width;
+		const int x = i % width;
+		int idx = y * width + x;
+		// gradient with forward difference
+		// TODO use closed form
+		float d_left = (x == 0) ? 0.0f : d[idx - 1];
+		float d_right = (x == width - 1) ? 0.0f : d[idx + 1];
+		//float dd_x = (x == width - 1) ? 0.0f : d[idx + 1] - d[idx];
+		float dd_x = d_right - d_left;
+		float d_up = (y == 0) ? 0.0f : d[idx - width];
+		float d_down = (y == height - 1) ? 0.0f : d[idx + width];
+		//float dd_y = (y == height - 1) ? 0.0f : d[idx + width] - d[idx];
+		float dd_y = d_down - d_up;
 
-			float maxq = std::fmaxf(1.0f, sqrtf(qx*qx + qy * qy));
-			q[idx] = qx / maxq;
-			q[idx + width * height] = qy / maxq;
-		}
-	}
+		float qx = (q[idx] + sigma_q * g[idx] * dd_x) / (1.0f + sigma_q * epsilon);
+		float qy = (q[idx + width * height] + sigma_q * g[idx] * dd_y) / (1.0f + sigma_q * epsilon);
+
+		float maxq = std::fmaxf(1.0f, sqrtf(qx*qx + qy * qy));
+		q[idx] = qx / maxq;
+		q[idx + width * height] = qy / maxq;
+	});
+	//for (int y = 0; y < height; y++) {
+	//	for (int x = 0; x < width; x++) {
+	//		int idx = y * width + x;
+	//		// gradient with forward difference
+	//		// TODO use closed form
+	//		float dd_x = (x == width - 1) ? 0.0f : d[idx + 1] - d[idx];
+	//		float dd_y = (y == height - 1) ? 0.0f : d[idx + width] - d[idx];
+
+	//		float qx = (q[idx] + sigma_q * g[idx] * dd_x) / (1.0f + sigma_q * epsilon);
+	//		float qy = (q[idx + width * height] + sigma_q * g[idx] * dd_y) / (1.0f + sigma_q * epsilon);
+
+	//		float maxq = std::fmaxf(1.0f, sqrtf(qx*qx + qy * qy));
+	//		q[idx] = qx / maxq;
+	//		q[idx + width * height] = qy / maxq;
+	//	}
+	//}
 }
 void updateD(float* g, Eigen::VectorXf& a_, Eigen::VectorXf& q_, Eigen::VectorXf& d_, int width, int height, float sigma_q, float sigma_d, float epsilon, float theta) {
 	float *a = a_.data();
@@ -86,18 +137,41 @@ void updateD(float* g, Eigen::VectorXf& a_, Eigen::VectorXf& q_, Eigen::VectorXf
 	//Eigen::Map<Eigen::VectorXf>( q, q_.rows(), q_.cols() ) =  q_;
 	//Eigen::Map<Eigen::VectorXf>( d, d_.rows(), d_.cols() ) =  d_;
 
-	for (int y = 0; y < height; y++) {
-		for (int x = 0; x < width; x++) {
-			int idx = y * width + x;
-			// gradient with backward difference
-			// TODO use closed form
-			float dqx_x = (x == 0) ? q[idx] - q[idx + 1] : q[idx] - q[idx - 1];
-			float dqy_y = (y == 0) ? q[idx + width * height] - q[idx + width * height + width] : q[idx + width * height] - q[idx + width * height - width];
-			float div_q = dqx_x + dqy_y;
+	tbb::parallel_for(0, pixels, [=](int i) {
+		const int y = i / width;
+		const int x = i % width;
+		int idx = y * width + x;
+		float qx_left = (x == 0) ? 0.0f : q[idx - 1];
+		float qx_right = (x == width - 1) ? 0.0f : q[idx + 1];
+		float qx_up = (y == 0) ? 0.0f : q[idx - width];
+		float qx_down = (y == width - 1) ? 0.0f : q[idx + width];
+		float qy_up = (y == 0) ? 0.0f : q[idx + width * height - width];
+		float qy_down = (y == width - 1) ? 0.0f : q[idx + width * height + width];
+		float qy_left = (x == 0) ? 0.0f : q[idx + width * height - 1];
+		float qy_right = (x == width - 1) ? 0.0f : q[idx + width * height + 1];
+		float dqx_x = (x == 0) ? q[idx] - q[idx + 1] : q[idx] - q[idx - 1];
+		float dqy_y = (y == 0) ? q[idx + width * height] - q[idx + width * height + width] : q[idx + width * height] - q[idx + width * height - width];
+		float div_q = dqx_x + dqy_y;
+		//float dqx_x = qx_left - qx_right;
+		//float dqx_y = qx_up - qx_down;
+		//float dqy_y = qy_up - qy_down;
+		//float dqy_x = qy_left - qy_right;
+		//float div_q = sqrtf(dqx_x*dqx_x + dqx_y * dqx_y) + sqrtf(dqy_x*dqy_x + dqy_y * dqy_y);
+		//div_q *= -1;
+		d[idx] = (d[idx] + sigma_d * (g[idx] * div_q + a[idx] / theta)) / (1.0f + sigma_d / theta);
+	});
+	//for (int y = 0; y < height; y++) {
+	//	for (int x = 0; x < width; x++) {
+	//		int idx = y * width + x;
+	//		// gradient with backward difference
+	//		// TODO use closed form
+	//		float dqx_x = (x == 0) ? q[idx] - q[idx + 1] : q[idx] - q[idx - 1];
+	//		float dqy_y = (y == 0) ? q[idx + width * height] - q[idx + width * height + width] : q[idx + width * height] - q[idx + width * height - width];
+	//		float div_q = dqx_x + dqy_y;
 
-			d[idx] = (d[idx] + sigma_d * (g[idx] * div_q + a[idx] / theta)) / (1.0f + sigma_d / theta);
-		}
-	}
+	//		d[idx] = (d[idx] + sigma_d * (g[idx] * div_q + a[idx] / theta)) / (1.0f + sigma_d / theta);
+	//	}
+	//}
 }
 
 void saveDepthImage(const char* filename, Eigen::VectorXf& d_) {
@@ -118,13 +192,14 @@ void PrimalDual(int current_ref_img, BYTE* colorFrame_r, BYTE** colorFrames_b, E
 	// d_ is d_u for all pixels per frame
 
 	using namespace Eigen;
-	float alphaG = 1.0f; // <- bad, i used 1
-	float betaG = 0.1f; // <- bad, i used 0.1
+	const float off = d_range / 32.0f;
+	float alphaG = 3.5f;//1.0f; // <- bad, i used 1
+	float betaG = 1.0f;//0.1f; // <- bad, i used 0.1
 	float theta_start = 0.2; // <- good
 	float theta_min = 1.0e-4; // <- good
 	float theta_step = 0.97; // <- good
-	float epsilon = 0.00147; // <- good
-	float lambda = 0.01f;//0.80; // <- good maybe 1.0
+	float epsilon = 0.1f * off;//0.00147; // <- good
+	float lambda = 0.01f / off;//0.8f;//0.80; // <- good maybe 1.0
 	float theta = theta_start;
 
 	float* g = new float[640 * 480];
@@ -167,9 +242,12 @@ void PrimalDual(int current_ref_img, BYTE* colorFrame_r, BYTE** colorFrames_b, E
 
 		updateQ(g, _Eaux_Min, q, d_, 640, 480, sigma_q(epsilon, theta), sigma_d(epsilon, theta), epsilon, theta);
 		updateD(g, _Eaux_Min, q, d_, 640, 480, sigma_q(epsilon, theta), sigma_d(epsilon, theta), epsilon, theta);
-		std::stringstream ss;
-		ss << "out_" << n << ".png";
-		saveDepthImage(ss.str().c_str(), d_);
+
+		if (n % 10 == 9) {
+			std::stringstream ss;
+			ss << "out_" << n << ".png";
+			saveDepthImage(ss.str().c_str(), d_);
+		}
 		create_Eaux(d_, theta, lambda, C_u_a, _Eaux);
 
 		tbb::parallel_for(0, pixels, [&](int idx) {

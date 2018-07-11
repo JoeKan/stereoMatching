@@ -35,7 +35,7 @@ int main(){
     KInv = K.inverse();
     load_all_matrices_from_n_files(poses);
     
-    processNextFrame(8, colorFrame_r);
+    //processNextFrame(8, colorFrame_r);
     //brute_force_depth_calc(colorFrame_r);
 
     //------Primal_Dual-------------

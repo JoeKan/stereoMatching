@@ -15,8 +15,8 @@ const int d_range = 100;
 const float min_depth = 0.5;
 const float max_depth = 8/*init_depth + (d_range - 1) * inc_depth*/;
 const float inc_depth = (max_depth - min_depth)/d_range;
-const int m = 7;
-const int current_ref_img = 8;
+const int m = 31;
+const int current_ref_img = 32;
 
 const std::string DATA_SYNTHETIC_DIR = "./../output640x480/";
 

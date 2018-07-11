@@ -118,7 +118,7 @@ void cost_calc(BYTE* colorFrame_r, BYTE** colorFrames_b, int current_ref_img, Ei
 					(float)colorFrame_r[(pixel * 4)] / 255.0f,
 					(float)colorFrame_r[(pixel * 4) + 1] / 255.0f,
 					(float)colorFrame_r[(pixel * 4) + 2] / 255.0f };
-				_a(pixel, d) += rho_r(pixel, step_depth, colorFrame_r, colorFrames_b[frameNum], I_r, frameNum, current_ref_img);
+				_a(pixel, d) += 1.0f / m * rho_r(pixel, step_depth, colorFrame_r, colorFrames_b[frameNum], I_r, frameNum, current_ref_img);
 				step_depth += inc_depth;
 			}
 		});
