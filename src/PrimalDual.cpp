@@ -102,13 +102,13 @@ void updateQ(float* g, Eigen::VectorXf& a_, Eigen::VectorXf& q_, Eigen::VectorXf
 		// TODO use closed form
 		float d_left = (x == 0) ? d[width - 1] : d[idx -1];
 		float d_right = d[idx];
-		//float dd_x = (x == width - 1) ? 0.0f : d[idx + 1] - d[idx];
-		float dd_x = d_right - d_left;
+		float dd_x = (x == width - 1) ? 0.0f : d[idx + 1] - d[idx];
+		//float dd_x = d_right - d_left;
 		
 		float d_up = (y == 0) ? d[width*(height - 1)] : d[idx - width];
 		float d_down = d[idx];
-		//float dd_y = (y == height - 1) ? 0.0f : d[idx + width] - d[idx];
-		float dd_y = d_down - d_up;
+		float dd_y = (y == height - 1) ? 0.0f : d[idx + width] - d[idx];
+		//float dd_y = d_down - d_up;
 
 		float qx = (q[idx] + sigma_q * g[idx] * dd_x) / (1.0f + sigma_q * epsilon);
 		float qy = (q[idx + width * height] + sigma_q * g[idx] * dd_y) / (1.0f + sigma_q * epsilon);
@@ -194,9 +194,9 @@ void subsampleNewton(float* a, Eigen::MatrixXf& eaux, int width, int height) {
 			return;
 		}
 
-		float a_energy = eaux(idx, depth_index - 1);
+		float a_energy = eaux(idx, depth_index + 1);
 		float b_energy = a[idx];
-		float c_energy = eaux(idx, depth_index + 1);
+		float c_energy = eaux(idx, depth_index - 1);
 		float delta = ((a_energy + c_energy) == 2 * b_energy) ? 0.0f : ((a_energy - c_energy)*inc_depth) / (2 * (a_energy - 2 * b_energy + c_energy));
 		delta = (fabsf(delta) > inc_depth) ? 0.0f : delta;
 		a[idx] += delta;
@@ -227,8 +227,8 @@ void PrimalDual(int current_ref_img, BYTE* colorFrame_r, BYTE** colorFrames_b, E
 	float theta_start = 0.2; // <- good
 	float theta_min = 1.0e-4; // <- good
 	float theta_step = 0.97; // <- good
-	float epsilon = 0.01f * off;//0.00147; // <- good
-	float lambda = 0.01f / off;//0.8f;//0.80; // <- good maybe 1.0
+	float epsilon = 0.00147f;//0.01f * off;//0.00147; // <- good
+	float lambda = 1.0f;//0.01f / off;//0.8f;//0.80; // <- good maybe 1.0
 	float theta = theta_start;
 
 	float* g = new float[640 * 480];
@@ -285,7 +285,7 @@ void PrimalDual(int current_ref_img, BYTE* colorFrame_r, BYTE** colorFrames_b, E
 			_Eaux_Min(idx) = max_depth - index * inc_depth;
 		});
 
-		subsampleNewton(_Eaux_Min.data(), _Eaux, 640, 480);
+		//subsampleNewton(_Eaux_Min.data(), _Eaux, 640, 480);
 
 		float beta = (theta > 1e-3) ? 1e-3 : 1e-4;
 		theta *= (1 - beta * n);
