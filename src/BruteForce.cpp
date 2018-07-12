@@ -36,7 +36,7 @@ void brute_force_depth_calc(BYTE* colorFrame_r) {
 					(float)colorFrame_r[(pixel * 4)] / 255.0f,
 					(float)colorFrame_r[(pixel * 4) + 1] / 255.0f,
 					(float)colorFrame_r[(pixel * 4) + 2] / 255.0f };
-				_d(pixel, d) += rho_r(pixel, step_depth, colorFrame_r, colorFrame_m, I_r, frameNum, 8);
+				_d(pixel, d) += rho_r(pixel, step_depth, colorFrame_r, colorFrame_m, I_r, frameNum, current_ref_img);
 				step_depth += inc_depth;
 			}
 		});
@@ -48,7 +48,8 @@ void brute_force_depth_calc(BYTE* colorFrame_r) {
 	tbb::parallel_for(0, pixels, [&](int idx) {
 		int index = 0;
 		_d.row(idx).minCoeff(&index);
-		_d_Min(idx) = min_depth + index * inc_depth;
+		//_d_Min(idx) = min_depth + index * inc_depth;
+        _d_Min(idx) = max_depth - index * inc_depth;
 	});
 
    std::cout << "_d_Min size = " << _d_Min.size() << std::endl;
