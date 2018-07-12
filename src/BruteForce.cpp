@@ -16,6 +16,8 @@ void brute_force_depth_calc(BYTE* colorFrame_r) {
         for(uint j=0; j< d_range; j++)
             _d(i,j) = 0;
     }
+    
+    std::cout << "Using the Brute Force Algorithms" << std::endl ;
 
    
     //std::cout << "inverse" << std::endl ;
@@ -36,7 +38,7 @@ void brute_force_depth_calc(BYTE* colorFrame_r) {
 					(float)colorFrame_r[(pixel * 4)] / 255.0f,
 					(float)colorFrame_r[(pixel * 4) + 1] / 255.0f,
 					(float)colorFrame_r[(pixel * 4) + 2] / 255.0f };
-				_d(pixel, d) += rho_r(pixel, step_depth, colorFrame_r, colorFrame_m, I_r, frameNum, current_ref_img);
+				_d(pixel, d) += (1.0f / m) * rho_r(pixel, step_depth, colorFrame_r, colorFrame_m, I_r, frameNum, current_ref_img);
 				step_depth += inc_depth;
 			}
 		});
