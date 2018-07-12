@@ -173,6 +173,24 @@ void updateD(float* g, Eigen::VectorXf& a_, Eigen::VectorXf& q_, Eigen::VectorXf
 	//	}
 	//}
 }
+void subsampleNewton(float* a, Eigen::MatrixXf& eaux, int width, int height) {
+	// 2.2.5 from the paper
+	tbb::parallel_for(0, pixels, [&](int idx) {
+		int x = idx % width;
+		int y = idx / width;
+		int depth_index = (a[idx] - max_depth) / -inc_depth;
+		if (depth_index == 0 || depth_index == d_range - 1) {
+			return;
+		}
+
+		float a_energy = eaux(idx, depth_index - 1);
+		float b_energy = a[idx];
+		float c_energy = eaux(idx, depth_index + 1);
+		float delta = ((a_energy + c_energy) == 2 * b_energy) ? 0.0f : ((a_energy - c_energy)*inc_depth) / (2 * (a_energy - 2 * b_energy + c_energy));
+		delta = (fabsf(delta) > inc_depth) ? 0.0f : delta;
+		a[idx] += delta;
+	});
+}
 
 void saveDepthImage(const char* filename, Eigen::VectorXf& d_) {
 	FreeImageB outImage(640, 480, 3);
@@ -193,12 +211,12 @@ void PrimalDual(int current_ref_img, BYTE* colorFrame_r, BYTE** colorFrames_b, E
 
 	using namespace Eigen;
 	const float off = d_range / 32.0f;
-	float alphaG = 3.5f;//1.0f; // <- bad, i used 1
-	float betaG = 1.0f;//0.1f; // <- bad, i used 0.1
+	float alphaG = 1.0f;//3.5f;//1.0f; // <- bad, i used 1
+	float betaG = 0.1f;//1.0f;//0.1f; // <- bad, i used 0.1
 	float theta_start = 0.2; // <- good
 	float theta_min = 1.0e-4; // <- good
 	float theta_step = 0.97; // <- good
-	float epsilon = 0.1f * off;//0.00147; // <- good
+	float epsilon = 0.01f * off;//0.00147; // <- good
 	float lambda = 0.01f / off;//0.8f;//0.80; // <- good maybe 1.0
 	float theta = theta_start;
 
@@ -255,6 +273,8 @@ void PrimalDual(int current_ref_img, BYTE* colorFrame_r, BYTE** colorFrames_b, E
 			_Eaux.row(idx).minCoeff(&index);
 			_Eaux_Min(idx) = max_depth - index * inc_depth;
 		});
+
+		subsampleNewton(_Eaux_Min.data(), _Eaux, 640, 480);
 
 		float beta = (theta > 1e-3) ? 1e-3 : 1e-4;
 		theta *= (1 - beta * n);
