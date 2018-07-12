@@ -13,7 +13,9 @@ void create_Eaux(Eigen::VectorXf& d_, float theta, float lambda, Eigen::MatrixXf
 
 // 6.2.3 of A. Chambolle and T. Pock. A first-order primal-dual
 // algorithm for convex problems with applications to imaging.
+// both sigma = 1, theta = 0.2,lambda = 1
 float sigma_d(float epsilon, float theta) {
+	return 1.0;
 
 	float L = 4.0;
 
@@ -22,6 +24,7 @@ float sigma_d(float epsilon, float theta) {
 	return mu / (2.0 / theta);
 }
 float sigma_q(float epsilon, float theta) {
+	return 1.0;
 
 	float L = 4.0;
 
@@ -61,7 +64,7 @@ void computeG(float* g, BYTE* img, int width, int height, float alphaG, float be
 		// central difference gradient
 		float gx = gray_right - gray_left;
 		float gy = gray_down - gray_up;
-		g[i] = expf(-alphaG * powf(sqrtf(gx*gx + gy * gy), betaG));
+		g[i] = expf(-1 * powf(sqrtf(gx*gx + gy * gy), betaG));
 	});
 	//for (int y = 0; y < height; y++) {
 	//	for (int x = 0; x < width; x++) {
@@ -90,18 +93,20 @@ void updateQ(float* g, Eigen::VectorXf& a_, Eigen::VectorXf& q_, Eigen::VectorXf
 	//Eigen::Map<Eigen::VectorXf>( q, q_.rows(), q_.cols() ) =  q_;
 	//Eigen::Map<Eigen::VectorXf>( d, d_.rows(), d_.cols() ) =  d_;
 
+	// BACKWARD DIFFERENCE AND MIRROR BC FOR TRANSPOSED OPERATOR A
 	tbb::parallel_for(0, pixels, [=](int i) {
 		const int y = i / width;
 		const int x = i % width;
 		int idx = y * width + x;
 		// gradient with forward difference
 		// TODO use closed form
-		float d_left = (x == 0) ? 0.0f : d[idx - 1];
-		float d_right = (x == width - 1) ? 0.0f : d[idx + 1];
+		float d_left = (x == 0) ? d[width - 1] : d[idx -1];
+		float d_right = d[idx];
 		//float dd_x = (x == width - 1) ? 0.0f : d[idx + 1] - d[idx];
 		float dd_x = d_right - d_left;
-		float d_up = (y == 0) ? 0.0f : d[idx - width];
-		float d_down = (y == height - 1) ? 0.0f : d[idx + width];
+		
+		float d_up = (y == 0) ? d[width*(height - 1)] : d[idx - width];
+		float d_down = d[idx];
 		//float dd_y = (y == height - 1) ? 0.0f : d[idx + width] - d[idx];
 		float dd_y = d_down - d_up;
 
@@ -137,18 +142,24 @@ void updateD(float* g, Eigen::VectorXf& a_, Eigen::VectorXf& q_, Eigen::VectorXf
 	//Eigen::Map<Eigen::VectorXf>( q, q_.rows(), q_.cols() ) =  q_;
 	//Eigen::Map<Eigen::VectorXf>( d, d_.rows(), d_.cols() ) =  d_;
 
+	// FORWARD DIFFERENCE AND CONSTANT BC FOR OPERATOR A
 	tbb::parallel_for(0, pixels, [=](int i) {
 		const int y = i / width;
 		const int x = i % width;
 		int idx = y * width + x;
-		float qx_left = (x == 0) ? 0.0f : q[idx - 1];
-		float qx_right = (x == width - 1) ? 0.0f : q[idx + 1];
-		float qx_up = (y == 0) ? 0.0f : q[idx - width];
-		float qx_down = (y == width - 1) ? 0.0f : q[idx + width];
-		float qy_up = (y == 0) ? 0.0f : q[idx + width * height - width];
-		float qy_down = (y == width - 1) ? 0.0f : q[idx + width * height + width];
-		float qy_left = (x == 0) ? 0.0f : q[idx + width * height - 1];
-		float qy_right = (x == width - 1) ? 0.0f : q[idx + width * height + 1];
+
+		float qx_left = q[idx];
+		float qx_right = (x == width - 1) ? q[idx] : q[idx + 1];
+
+		float qx_up = q[idx];
+		float qx_down = (y == width - 1) ? q[idx] : q[idx + width];
+
+		float qy_up = q[idx + width * height];
+		float qy_down = (y == width - 1) ? q[idx + width * height] : q[idx + width * height + width];
+
+		float qy_left = q[idx + width * height];
+		float qy_right = (x == width - 1) ?  q[idx + width * height] : q[idx + width * height + 1];
+
 		float dqx_x = (x == 0) ? q[idx] - q[idx + 1] : q[idx] - q[idx - 1];
 		float dqy_y = (y == 0) ? q[idx + width * height] - q[idx + width * height + width] : q[idx + width * height] - q[idx + width * height - width];
 		float div_q = dqx_x + dqy_y;
