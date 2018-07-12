@@ -183,9 +183,9 @@ void subsampleNewton(float* a, Eigen::MatrixXf& eaux, int width, int height) {
 			return;
 		}
 
-		float a_energy = eaux(idx, depth_index - 1);
+		float a_energy = eaux(idx, depth_index + 1);
 		float b_energy = a[idx];
-		float c_energy = eaux(idx, depth_index + 1);
+		float c_energy = eaux(idx, depth_index - 1);
 		float delta = ((a_energy + c_energy) == 2 * b_energy) ? 0.0f : ((a_energy - c_energy)*inc_depth) / (2 * (a_energy - 2 * b_energy + c_energy));
 		delta = (fabsf(delta) > inc_depth) ? 0.0f : delta;
 		a[idx] += delta;
