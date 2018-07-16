@@ -137,3 +137,22 @@ void read_images(int num, BYTE* colorFrame){
     rgbImg.LoadImageFromFile(filename);
     memcpy(colorFrame, rgbImg.data, 4 * 640 * 480);
 }
+
+void printGroundTruth(int current_ref_img) {
+    std::string filename;
+    float *image = new float(640*480*1);
+
+    char buf[20];
+    snprintf(buf, sizeof buf, "/%04d", current_ref_img);
+    filename = std::string(DATA_SYNTHETIC_DIR) + std::string(buf) + ".exr";
+
+    read_openexr(filename, image, 640, 480, 1);
+    // convert image to Byte
+
+    FreeImageB outImage(640, 480, 1);
+    BYTE* outData = new BYTE[640 * 480 * 1];
+
+	BYTE* outData = new BYTE[640 * 480 * 1];
+    outImage.data = outData;
+	outImage.SaveImageToFile("GroundTruth.png");
+}

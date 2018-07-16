@@ -14,6 +14,7 @@ Eigen::Matrix4f KInv;
 
 #define uint unsigned int
 
+
 int main(){
     BYTE* colorFrame_r = new BYTE[4* 640*480];
     read_images(current_ref_img, colorFrame_r);
