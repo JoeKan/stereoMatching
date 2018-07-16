@@ -15,12 +15,16 @@ static inline void read_openexr(std::string filename, float *image, int width, i
     assert(width == w);
     assert(height == h);
     IMF::FrameBuffer frameBuffer;
+    std::cout << "AAA" << std::endl;
     // frameBuffer.insert("R", IMF::Slice(IMF::FLOAT, (char *) (image - dw.min.x - dw.min.y*width), sizeof(float)*3, sizeof(float)*3*width, 1, 1, 0.0f));
     // frameBuffer.insert("G", IMF::Slice(IMF::FLOAT, (char *) (image - dw.min.x - dw.min.y*width), sizeof(float)*3, sizeof(float)*3*width, 1, 1, 0.0f));
     // frameBuffer.insert("B", IMF::Slice(IMF::FLOAT, (char *) (image - dw.min.x - dw.min.y*width), sizeof(float)*3, sizeof(float)*3*width, 1, 1, 0.0f));
     frameBuffer.insert("Z", IMF::Slice(IMF::FLOAT, (char *) (image), sizeof(float)*1, sizeof(float)*1*width, 1, 1, 0.0f));
-	file.setFrameBuffer(frameBuffer);
+	std::cout << "BBB" << std::endl;
+    file.setFrameBuffer(frameBuffer);
+    std::cout << "CCC" << std::endl;
     file.readPixels(dw.min.y, dw.max.y);
+    std::cout << "DDD" << std::endl;
  }
 
 
