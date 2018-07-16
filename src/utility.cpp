@@ -146,12 +146,12 @@ void printGroundTruth(int current_ref_img) {
     snprintf(buf, sizeof buf, "/%04d", current_ref_img);
     filename = std::string(DATA_SYNTHETIC_DIR) + std::string(buf) + ".exr";
 
+    std::cout << "Before openexr" << std::endl;
     read_openexr(filename, image, 640, 480, 1);
     // convert image to Byte
+    std::cout << "After openexr" << std::endl;
 
     FreeImageB outImage(640, 480, 1);
-    BYTE* outData = new BYTE[640 * 480 * 1];
-
 	BYTE* outData = new BYTE[640 * 480 * 1];
     outImage.data = outData;
 	outImage.SaveImageToFile("GroundTruth.png");

@@ -16,6 +16,7 @@ Eigen::Matrix4f KInv;
 
 
 int main(){
+    printGroundTruth(current_ref_img);
     BYTE* colorFrame_r = new BYTE[4* 640*480];
     read_images(current_ref_img, colorFrame_r);
     
