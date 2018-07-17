@@ -26,4 +26,7 @@ Libraries used:
 	2) ilmbase    
 	3) FreeImage    
 	4) Eigen    
-	5) tbb (thread building blocks)    
+	5) tbb (thread building blocks)   
+
+Result:  
+Sample result are also uploaded in the folder "Result"    
