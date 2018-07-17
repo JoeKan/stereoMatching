@@ -24,4 +24,5 @@ Libraries used:
 	1) openexr
 	2) ilmbase
 	3) FreeImage
-	4) Eigen 
+	4) Eigen
+	5) tbb (thread building blocks)
