@@ -17,7 +17,7 @@ Result: The depth will be stored in build folder as out_primaldual.png
 To use brute force algorithm:     
 	1) Please uncomment/enable line number 38 and 39    
 	2) comment/disable line number 42-56    
-	3) Compile and run as explained above
+	3) Compile and run as explained above   
     4) depth map will be stored in build folder as out.png        
 
 
