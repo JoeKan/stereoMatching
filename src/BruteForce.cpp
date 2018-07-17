@@ -80,7 +80,7 @@ void brute_force_depth_calc(BYTE* colorFrame_r) {
         outData[idx * 3 + 2] = 255 - (_d_Min[idx] / max_depth) * 255;
 	});
 	outImage.data = outData;
-	outImage.SaveImageToFile("out.png");
+	outImage.SaveImageToFile("out_BruteForce.png");
 
     delete colorFrame_r;
     

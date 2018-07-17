@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <tbb/parallel_for.h>
 #include <FreeImage.h>
+#include <vector>
 
 #include "Eigen.h"
 #include "utility.h"
